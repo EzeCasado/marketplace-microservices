@@ -8,7 +8,7 @@ import org.testcontainers.utility.DockerImageName;
 
 /**
  * MySQL en un contenedor para los tests que levantan la aplicación.
- * Cada test lo trae con @Import(TestcontainersConfiguration.class).
+ * Lo importa TestDeIntegracion, la clase base de esos tests.
  *
  * @ServiceConnection hace que el DataSource use la URL, el usuario y la
  * contraseña del contenedor en lugar de los de application.properties.

@@ -6,9 +6,6 @@ import grupo2.catalogodeproductos_tpi.repository.CategoriaRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -17,15 +14,10 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Levanta la aplicación completa, con Tomcat en un puerto libre y MySQL
- * en un contenedor, y le pega por HTTP como lo haría un cliente.
+ * Levanta la aplicación completa contra el MySQL del contenedor (ver
+ * TestDeIntegracion) y le pega por HTTP como lo haría un cliente.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Import(TestcontainersConfiguration.class)
-class CatalogoDeProductosTpiApplicationTests {
-
-    @Autowired
-    private TestRestTemplate restTemplate;
+class CatalogoDeProductosTpiApplicationTests extends TestDeIntegracion {
 
     @Autowired
     private CategoriaRepository categoriaRepository;

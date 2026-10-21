@@ -104,6 +104,15 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- WireMock para simular los otros servicios en los tests. Boot no maneja su version.
+             Va la standalone porque trae su Jetty adentro y no choca con el de Boot -->
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <version>3.13.2</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <!-- 
