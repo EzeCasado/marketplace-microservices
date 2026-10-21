@@ -1,6 +1,7 @@
 name: Bug
 description: Algo no funciona como debería
 title: "bug: "
+labels: ["bug"]
 body:
   - type: dropdown
     id: service

@@ -1,6 +1,7 @@
 name: Funcionalidad o tarea
 description: Algo nuevo para construir, o una mejora
 title: "feat: "
+labels: ["enhancement"]
 body:
   - type: dropdown
     id: service
