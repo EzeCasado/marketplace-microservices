@@ -1,0 +1,12 @@
+# Configuración de Redocly para los contratos de esta carpeta.
+# Cada contrato nuevo se suma en `apis` para que el CI lo valide.
+extends:
+  - recommended
+
+apis:
+  catalog:
+    root: catalog.yaml
+
+rules:
+  # Los servicios corren en localhost; no hay un server público que documentar.
+  no-server-example.com: off
