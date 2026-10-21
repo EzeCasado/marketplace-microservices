@@ -1,0 +1,46 @@
+name: Bug
+description: Algo no funciona como debería
+title: "bug: "
+body:
+  - type: dropdown
+    id: service
+    attributes:
+      label: Servicio
+      options:
+        - users
+        - catalog
+        - inventory
+        - orders
+        - payments
+        - shipping
+        - reviews
+        - notifications
+        - gateway
+        - assistant
+        - infra / docker-compose
+        - otro
+    validations:
+      required: true
+  - type: textarea
+    id: what-happens
+    attributes:
+      label: Qué pasa
+      description: Qué esperabas y qué ocurre en cambio.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Cómo reproducirlo
+      placeholder: |
+        1. Levantar el servicio con...
+        2. Llamar a `POST /...` con...
+        3. Ver la respuesta
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs o respuesta
+      description: Sin contraseñas ni keys.
+      render: shell
