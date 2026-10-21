@@ -1,0 +1,56 @@
+# ---------- Secrets and local environment (never commit these) ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+application-local.*
+application-secret*.*
+docker-compose.override.yml
+
+# ---------- Java / Maven / Gradle ----------
+target/
+build/
+.gradle/
+*.class
+*.jar
+*.war
+hs_err_pid*
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+
+# ---------- Node ----------
+node_modules/
+npm-debug.log*
+
+# ---------- IDEs ----------
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+.apt_generated/
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- Logs and local data ----------
+*.log
+logs/
+mysql-data/
