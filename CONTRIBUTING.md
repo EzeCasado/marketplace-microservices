@@ -4,7 +4,10 @@ Estas reglas valen para todos los cambios, incluidos los míos.
 
 ## Idioma
 
-La documentación (README, issues, plantillas) está en español. El código, los nombres de carpetas, las ramas, los commits y los títulos de los pull requests van en inglés.
+La documentación, los issues, las ramas, los commits y los títulos de los pull requests van en español. Hay dos excepciones en inglés:
+
+- Los nombres de las carpetas de los servicios (`users`, `catalog`, `orders`...).
+- Los tipos de Conventional Commits (`feat`, `fix`, `docs`...), porque el chequeo del título y las herramientas de versionado los reconocen así.
 
 ## Flujo
 
@@ -15,11 +18,11 @@ La documentación (README, issues, plantillas) está en español. El código, lo
 
 ### Nombre de las ramas
 
-`tipo/descripcion-corta`, en minúsculas y con guiones: `feat/catalog-pagination`, `fix/orders-total-rounding`, `docs/api-contracts`.
+`tipo/descripcion-corta`, en minúsculas, con guiones y sin tildes ni eñes: `feat/paginacion-catalogo`, `fix/redondeo-total-ordenes`, `docs/contratos-api`.
 
 ### Títulos y commits
 
-Siguen [Conventional Commits](https://www.conventionalcommits.org/): `tipo(servicio): descripción en imperativo`.
+Siguen [Conventional Commits](https://www.conventionalcommits.org/): `tipo(servicio): descripción`, con la descripción en español, en tercera persona y en minúscula (`agrega`, `corrige`, `elimina`).
 
 | Tipo | Para qué |
 |---|---|
@@ -31,7 +34,7 @@ Siguen [Conventional Commits](https://www.conventionalcommits.org/): `tipo(servi
 | `build` / `ci` | Dependencias, Docker, workflows |
 | `chore` | Todo lo demás |
 
-Ejemplos: `feat(catalog): add pagination to GET /products`, `fix(orders): reject empty carts`, `ci: cache Maven dependencies`.
+Ejemplos: `feat(catalog): agrega paginación a GET /products`, `fix(orders): rechaza carritos vacíos`, `ci: cachea las dependencias de Maven`.
 
 ## Secretos
 
