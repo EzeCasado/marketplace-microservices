@@ -1,7 +1,7 @@
 name: Dependabot auto-merge
 
 # Los pull requests de Dependabot con cambios menores o parches se integran solos
-# cuando pasan los checks obligatorios de `main`. Los cambios de versión mayor
+# en `develop` cuando pasan los checks obligatorios. Los cambios de versión mayor
 # quedan para revisarlos a mano.
 on: pull_request_target
 
