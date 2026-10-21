@@ -1,0 +1,17 @@
+name: Labeler
+
+# pull_request_target corre con el workflow de `main` y no hace checkout del código
+# del pull request, así que es seguro darle permiso de escritura sobre las etiquetas.
+on: pull_request_target
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  labeler:
+    name: Label by folder
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/labeler@v6
