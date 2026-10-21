@@ -1,0 +1,41 @@
+# Etiqueta cada pull request según las carpetas que toca.
+# Cada servicio nuevo suma su entrada acá.
+users:
+  - changed-files:
+      - any-glob-to-any-file: 'services/users/**'
+catalog:
+  - changed-files:
+      - any-glob-to-any-file: 'services/catalog/**'
+inventory:
+  - changed-files:
+      - any-glob-to-any-file: 'services/inventory/**'
+orders:
+  - changed-files:
+      - any-glob-to-any-file: 'services/orders/**'
+payments:
+  - changed-files:
+      - any-glob-to-any-file: 'services/payments/**'
+shipping:
+  - changed-files:
+      - any-glob-to-any-file: 'services/shipping/**'
+reviews:
+  - changed-files:
+      - any-glob-to-any-file: 'services/reviews/**'
+notifications:
+  - changed-files:
+      - any-glob-to-any-file: 'services/notifications/**'
+gateway:
+  - changed-files:
+      - any-glob-to-any-file: 'services/gateway/**'
+assistant:
+  - changed-files:
+      - any-glob-to-any-file: 'services/assistant/**'
+infra:
+  - changed-files:
+      - any-glob-to-any-file: ['docker-compose*.yml', 'infra/**', '.env.example']
+ci:
+  - changed-files:
+      - any-glob-to-any-file: '.github/**'
+documentation:
+  - changed-files:
+      - any-glob-to-any-file: '**/*.md'

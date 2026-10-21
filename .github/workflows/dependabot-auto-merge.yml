@@ -1,0 +1,28 @@
+name: Dependabot auto-merge
+
+# Los pull requests de Dependabot con cambios menores o parches se integran solos
+# en `develop` cuando pasan los checks obligatorios. Los cambios de versión mayor
+# quedan para revisarlos a mano.
+on: pull_request_target
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Auto-merge minor and patch updates
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'EzeCasado/marketplace-microservices'
+    steps:
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v3
+
+      - name: Enable auto-merge (squash)
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

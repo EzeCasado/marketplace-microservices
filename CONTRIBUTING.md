@@ -9,16 +9,32 @@ La documentación, los issues, las ramas, los commits y los títulos de los pull
 - Los nombres de las carpetas de los servicios (`users`, `catalog`, `orders`...).
 - Los tipos de Conventional Commits (`feat`, `fix`, `docs`...), porque el chequeo del título y las herramientas de versionado los reconocen así.
 
-## Flujo
+## Flujo (gitflow)
 
-1. Todo cambio sale de una rama nueva desde `main`. Nunca se sube directo a `main`.
+Hay dos ramas permanentes:
+
+- `develop`: donde se integra el trabajo del día a día. Es la rama por defecto del repo.
+- `main`: solo versiones estables. Cada integración a `main` es una versión nueva.
+
+Y tres tipos de ramas temporales:
+
+| Rama | Sale de | Se integra en | Cómo |
+|---|---|---|---|
+| De trabajo (`feat/...`, `fix/...`, `docs/...`) | `develop` | `develop` | Squash merge: queda un solo commit con el título del pull request |
+| `release/vX.Y.Z` | `develop` | `main` | Merge commit |
+| `hotfix/descripcion` | `main` | `main` | Merge commit |
+
+Después de integrar una `release` o un `hotfix` en `main`, se abre un pull request de `main` a `develop` (también con merge commit), para que `develop` tenga lo mismo que salió.
+
+Reglas:
+
+1. Nunca se sube directo a `develop` ni a `main`: todo entra por pull request y con el CI en verde.
 2. Una rama, un tema. Los pull requests chicos se revisan mejor y rompen menos.
-3. Se abre un pull request. Tiene que pasar el CI antes de integrarlo.
-4. Se integra con **squash merge**: el título del pull request queda como único commit en `main`.
+3. Entre `develop` y `main` nunca se usa squash. Si se aplasta, las dos ramas dejan de compartir historial y cada versión nueva arrastra conflictos con cambios que ya estaban integrados.
 
 ### Nombre de las ramas
 
-`tipo/descripcion-corta`, en minúsculas, con guiones y sin tildes ni eñes: `feat/paginacion-catalogo`, `fix/redondeo-total-ordenes`, `docs/contratos-api`.
+`tipo/descripcion-corta`, en minúsculas, con guiones y sin tildes ni eñes: `feat/paginacion-catalogo`, `fix/redondeo-total-ordenes`, `docs/contratos-api`. Las versiones van como `release/v0.1.0` y las correcciones urgentes como `hotfix/stock-negativo`.
 
 ### Títulos y commits
 
