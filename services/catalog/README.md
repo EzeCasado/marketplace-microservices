@@ -21,6 +21,39 @@ Hace falta Java 21 y un MySQL accesible.
 
 Queda escuchando en el puerto `8082`. Si Usuarios, Inventario o Reseñas no están corriendo, el catálogo funciona igual, pero `stock` y `ratingPromedio` vienen en `null`.
 
+## Tests
+
+Son tests de integración: levantan la aplicación completa en un puerto libre, contra un MySQL 8.4 en un contenedor (Testcontainers), con Usuarios, Inventario y Reseñas simulados con WireMock. No hace falta tener un MySQL propio ni los otros servicios corriendo.
+
+- `CatalogoDeProductosTpiApplicationTests`: la app arranca contra MySQL y `GET /categories` lista lo que hay en la base.
+- `ProductoPorSkuTests`: `/products/{sku}`. Un SKU que no existe, el detalle con Inventario caído o lento, y la baja con y sin `X-API-Key`. Sirve de molde para los tests nuevos.
+- `TestDeIntegracion`: la clase base que arma la app, el MySQL y los WireMock. Los tests nuevos la extienden.
+
+Hace falta:
+
+- **Docker andando.** En Windows, Docker Desktop abierto. La primera corrida baja la imagen `mysql:8.4` y tarda más.
+- **Java 21.** El wrapper usa el JDK de `JAVA_HOME` o, si no está definida, el `java` del PATH. Con el JDK 26 `src/main` no compila, porque el Lombok que trae Boot 3.3 no lo soporta.
+
+Se corren desde `services/catalog`. En Windows:
+
+```powershell
+.\mvnw.cmd verify
+```
+
+Si el `java` por defecto no es el 21, en PowerShell se puede apuntar `JAVA_HOME` solo para esa terminal, con la carpeta donde esté instalado:
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-21"
+```
+
+En Linux o Mac:
+
+```bash
+./mvnw verify
+```
+
+En el CI corren solos: el job `Catalog (build and test)` hace `mvn -B verify` en cada pull request que toca `services/catalog`.
+
 ## Endpoints
 
 Así están hoy. Todavía no coinciden del todo con la consigna (ver más abajo).
