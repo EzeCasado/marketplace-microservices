@@ -1,0 +1,39 @@
+name: Funcionalidad o tarea
+description: Algo nuevo para construir, o una mejora
+title: "feat: "
+body:
+  - type: dropdown
+    id: service
+    attributes:
+      label: Servicio
+      options:
+        - users
+        - catalog
+        - inventory
+        - orders
+        - payments
+        - shipping
+        - reviews
+        - notifications
+        - gateway
+        - assistant
+        - infra / docker-compose
+        - otro
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Qué hay que hacer
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Cuándo está listo
+      description: Los criterios para dar la tarea por terminada.
+      placeholder: |
+        - [ ] El endpoint responde 201 con...
+        - [ ] Hay tests de...
+    validations:
+      required: true

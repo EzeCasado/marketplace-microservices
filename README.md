@@ -25,4 +25,8 @@ Todo se va a levantar junto con Docker Compose.
 
 ## Cómo se trabaja
 
-El repo se va a desarrollar con un flujo parecido al de un equipo: ramas cortas, pull requests, integración continua con GitHub Actions y dependencias actualizadas con Dependabot. Esas piezas se suman de a una; este README se actualiza a medida que existan.
+El repo se va a desarrollar con un flujo parecido al de un equipo: ramas cortas, pull requests, integración continua con GitHub Actions y dependencias actualizadas con Dependabot. Esas piezas se suman de a una; este README se actualiza a medida que existan. Las reglas están en [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Licencia
+
+Por ahora el repo no tiene licencia. El código se puede leer, pero no copiar, modificar ni redistribuir.

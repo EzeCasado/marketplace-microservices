@@ -1,0 +1,11 @@
+# Normaliza los finales de línea. Importa porque se trabaja desde Windows
+# y los scripts y contenedores corren en Linux.
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+*.jar binary
+*.png binary
+*.jpg binary
+*.pdf binary

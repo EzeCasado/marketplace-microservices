@@ -1,0 +1,13 @@
+# Actualizaciones automáticas de dependencias.
+# Cada servicio suma su propia entrada (maven o pip) cuando se agrega al repo.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      github-actions:
+        patterns: ["*"]
