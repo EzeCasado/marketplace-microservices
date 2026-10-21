@@ -23,6 +23,9 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <!-- Definimos la version de MapStruct en un solo lugar -->
         <org.mapstruct.version>1.6.3</org.mapstruct.version>
+        <!-- Pisa la 1.19.8 que trae Boot 3.3.1: Docker Engine 29 la rechaza por vieja.
+             Se saca en la migracion a Boot 4 (#11), que trae Testcontainers 2.x -->
+        <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
 
     <!-- 
@@ -76,6 +79,39 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Tests: JUnit, AssertJ y Spring Test, y MySQL en un contenedor con Testcontainers -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mysql</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- WireMock para simular los otros servicios en los tests. Boot no maneja su version.
+             Va la standalone porque trae su Jetty adentro y no choca con el de Boot -->
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <version>3.13.2</version>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
 
