@@ -24,6 +24,7 @@ jobs:
       pull-requests: read
     outputs:
       catalog: ${{ steps.filter.outputs.catalog }}
+      docs-api: ${{ steps.filter.outputs.docs-api }}
     steps:
       - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
@@ -32,6 +33,8 @@ jobs:
           filters: |
             catalog:
               - 'services/catalog/**'
+            docs-api:
+              - 'docs/api/**'
 
   catalog:
     name: Catalog (build and test)
@@ -52,12 +55,25 @@ jobs:
       - name: Build and run tests
         run: mvn -B verify
 
+  # Valida los contratos OpenAPI listados en docs/api/redocly.yaml.
+  # Usa el Node que ya trae el runner.
+  docs-api:
+    name: API contracts (lint)
+    needs: changes
+    if: needs.changes.outputs.docs-api == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Lint with Redocly
+        run: npx --yes @redocly/cli@2.67.1 lint --config docs/api/redocly.yaml --format=github-actions
+
   # Un único chequeo para exigir en las reglas de `main`. Corre siempre,
   # así no queda "pendiente" cuando un servicio no cambió y su job se saltea.
   ci-ok:
     name: CI OK
     if: always()
-    needs: [changes, catalog]
+    needs: [changes, catalog, docs-api]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

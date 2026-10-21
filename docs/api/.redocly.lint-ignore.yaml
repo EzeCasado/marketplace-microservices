@@ -1,0 +1,5 @@
+# Avisos de Redocly que se ignoran a propósito, uno por uno.
+catalog.yaml:
+  # GET /categories no tiene parámetros: no hay un 4xx posible.
+  operation-4xx-response:
+    - '#/paths/~1categories/get/responses'
