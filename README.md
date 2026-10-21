@@ -1,6 +1,6 @@
 # marketplace-microservices
 
-Un marketplace armado con microservicios, en un monorepo. **En construcción: todavía no hay código.**
+Un marketplace armado con microservicios, en un monorepo. **En construcción.**
 
 ## Origen
 
@@ -22,6 +22,8 @@ Nace del trabajo práctico integrador de Programación Orientada a Objetos (UNSA
 | Asistente con IA | Un chat que usa las APIs de los demás servicios | Python |
 
 Todo se va a levantar junto con Docker Compose.
+
+Hoy está el catálogo, en [`services/catalog/`](services/catalog/), traído del TPI.
 
 ## Cómo se trabaja
 
