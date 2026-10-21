@@ -1,0 +1,29 @@
+name: Release
+
+# Cada vez que algo entra a `main`, release-please revisa los commits de cada servicio
+# y abre (o actualiza) un pull request de versión con el número nuevo y el CHANGELOG.
+# Al integrar ese pull request, crea los tags (catalog-v0.1.0) y los releases en GitHub.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          # Token personal: con el GITHUB_TOKEN el CI no corre en el pull request
+          # de versión, y las reglas de `main` no dejarían integrarlo.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          # La rama por defecto es `develop`; las versiones salen de `main`.
+          target-branch: main
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

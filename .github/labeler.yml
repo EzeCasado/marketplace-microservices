@@ -35,7 +35,7 @@ infra:
       - any-glob-to-any-file: ['docker-compose*.yml', 'infra/**', '.env.example']
 ci:
   - changed-files:
-      - any-glob-to-any-file: '.github/**'
+      - any-glob-to-any-file: ['.github/**', 'release-please-config.json', '.release-please-manifest.json']
 documentation:
   - changed-files:
       - any-glob-to-any-file: '**/*.md'
