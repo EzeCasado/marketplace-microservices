@@ -1,0 +1,647 @@
+openapi: 3.1.0
+
+info:
+  title: Catálogo
+  version: 0.1.0
+  description: |
+    Contrato del servicio de catálogo (módulo 2 de la consigna): productos y categorías.
+
+    Describe cómo tiene que quedar el servicio, no cómo está hoy. Lo que el código todavía no cumple tiene su issue.
+
+    **Reglas generales**
+
+    - Las peticiones y respuestas con cuerpo usan `Content-Type: application/json`.
+    - Las operaciones de escritura (`POST`, `PATCH` y `DELETE`) piden el header `X-API-Key`. Las de lectura son públicas.
+    - Los errores tienen siempre la forma `{ "error": "Codigo", "message": "Detalle legible" }`.
+    - El stock no es del catálogo, es de Inventario. El detalle de un producto lo consulta ahí y lo devuelve en `cantidad`.
+    - Un producto dado de baja deja de existir para la API: no aparece en el listado, y `GET`, `PATCH` y `DELETE` sobre su `sku` devuelven 404.
+
+    **Códigos de error**
+
+    | Código | Cuándo |
+    |---|---|
+    | 400 | El body está mal formado, un valor es inválido o se manda un campo que la operación no acepta |
+    | 401 | Falta la `X-API-Key` o es inválida |
+    | 403 | La `X-API-Key` es válida pero no tiene permiso para la operación |
+    | 404 | El recurso no existe |
+    | 409 | Ya existe un recurso con ese identificador |
+    | 422 | Faltan campos obligatorios |
+    | 500 | Error inesperado del servidor |
+
+servers:
+  - url: http://localhost:8082
+    description: Local
+
+tags:
+  - name: Productos
+    description: Alta, consulta, modificación y baja de productos.
+  - name: Categorías
+    description: Alta y consulta de categorías.
+
+paths:
+  /products:
+    get:
+      tags: [Productos]
+      operationId: listarProductos
+      summary: Lista los productos
+      description: |
+        Devuelve una página con el resumen de los productos activos que cumplen los filtros. Todos los filtros son opcionales y se combinan entre sí.
+
+        El resumen no trae stock: el listado no consulta a Inventario. Para el stock de un producto, usar `GET /products/{sku}`.
+
+        Una página posterior a la última devuelve `items` vacío. Un `categoriaId` que no existe también devuelve `items` vacío, no 404.
+      security: []
+      parameters:
+        - name: q
+          in: query
+          description: Texto que tiene que aparecer en el `nombre`. No distingue mayúsculas de minúsculas.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+          example: libro
+        - name: categoriaId
+          in: query
+          description: Solo los productos de esta categoría.
+          schema:
+            $ref: '#/components/schemas/CategoriaId'
+        - name: precioMin
+          in: query
+          description: Precio mínimo, inclusive. No puede ser mayor que `precioMax`.
+          schema:
+            type: number
+            minimum: 0
+          example: 10000
+        - name: precioMax
+          in: query
+          description: Precio máximo, inclusive.
+          schema:
+            type: number
+            minimum: 0
+          example: 20000
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: La página pedida.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaProductos'
+        '400':
+          $ref: '#/components/responses/PeticionInvalida'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+    post:
+      tags: [Productos]
+      operationId: crearProducto
+      summary: Crea un producto
+      description: |
+        No acepta `cantidad`: el stock inicial se carga en Inventario. Por eso, en la respuesta `cantidad` viene en `null` hasta que Inventario tenga el producto.
+
+        Para un producto `FISICO`, `peso` y `volumen` son obligatorios, porque Envíos cotiza con ellos. Para uno `DIGITAL` no se mandan.
+
+        Un `categoriaId` que no existe es un valor inválido y devuelve 400.
+      security:
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductoAlta'
+            examples:
+              fisico:
+                summary: Producto físico
+                value:
+                  sku: BK-001
+                  nombre: Libro POO
+                  descripcion: Programación orientada a objetos, tapa blanda.
+                  tipo: FISICO
+                  precio: 15000
+                  peso: 0.45
+                  volumen: 0.0012
+                  categoriaId: cat-libros
+              digital:
+                summary: Producto digital
+                value:
+                  sku: EB-001
+                  nombre: Libro POO (e-book)
+                  tipo: DIGITAL
+                  precio: 9000
+                  categoriaId: cat-libros
+      responses:
+        '201':
+          description: El producto creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+              example:
+                sku: BK-001
+                nombre: Libro POO
+                descripcion: Programación orientada a objetos, tapa blanda.
+                tipo: FISICO
+                precio: 15000
+                peso: 0.45
+                volumen: 0.0012
+                categoria:
+                  id: cat-libros
+                  nombre: Libros
+                cantidad: null
+        '400':
+          $ref: '#/components/responses/PeticionInvalida'
+        '401':
+          $ref: '#/components/responses/NoAutorizado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '409':
+          description: Ya existe un producto con ese `sku`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Conflicto
+                message: Ya existe un producto con el SKU BK-001
+        '422':
+          $ref: '#/components/responses/FaltanCampos'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /products/{sku}:
+    parameters:
+      - $ref: '#/components/parameters/Sku'
+
+    get:
+      tags: [Productos]
+      operationId: obtenerProducto
+      summary: Devuelve el detalle de un producto
+      description: |
+        `cantidad` se consulta a Inventario. Si Inventario no responde, viene en `null` y el resto del detalle se devuelve igual.
+      security: []
+      responses:
+        '200':
+          description: El producto.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+        '400':
+          $ref: '#/components/responses/PeticionInvalida'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+    patch:
+      tags: [Productos]
+      operationId: modificarProducto
+      summary: Modifica un producto
+      description: |
+        Cambia solo los campos que se mandan; los demás quedan como están. Hay que mandar al menos uno: un body vacío (`{}`) devuelve 422.
+
+        No se pueden cambiar `sku`, `tipo` ni `cantidad` (el stock se cambia en Inventario): mandarlos devuelve 400. También devuelve 400 mandar `peso` o `volumen` a un producto `DIGITAL`, o un `categoriaId` que no existe.
+      security:
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductoCambio'
+            example:
+              precio: 16500
+      responses:
+        '200':
+          description: El producto con los cambios.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Producto'
+        '400':
+          $ref: '#/components/responses/PeticionInvalida'
+        '401':
+          $ref: '#/components/responses/NoAutorizado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '422':
+          $ref: '#/components/responses/FaltanCampos'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+    delete:
+      tags: [Productos]
+      operationId: darDeBajaProducto
+      summary: Da de baja un producto
+      description: |
+        Baja lógica: el producto deja de existir para la API, pero sus datos se conservan. Dar de baja un producto que ya estaba dado de baja devuelve 404.
+      security:
+        - apiKey: []
+      responses:
+        '204':
+          description: El producto quedó dado de baja.
+        '400':
+          $ref: '#/components/responses/PeticionInvalida'
+        '401':
+          $ref: '#/components/responses/NoAutorizado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /categories:
+    get:
+      tags: [Categorías]
+      operationId: listarCategorias
+      summary: Lista las categorías
+      description: Devuelve todas las categorías, sin paginar.
+      security: []
+      responses:
+        '200':
+          description: Las categorías.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListaCategorias'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+    post:
+      tags: [Categorías]
+      operationId: crearCategoria
+      summary: Crea una categoría
+      description: El `id` lo elige quien crea la categoría.
+      security:
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Categoria'
+              unevaluatedProperties: false
+            example:
+              id: cat-libros
+              nombre: Libros
+      responses:
+        '201':
+          description: La categoría creada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Categoria'
+        '400':
+          $ref: '#/components/responses/PeticionInvalida'
+        '401':
+          $ref: '#/components/responses/NoAutorizado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '409':
+          description: Ya existe una categoría con ese `id`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Conflicto
+                message: Ya existe una categoría con el id cat-libros
+        '422':
+          $ref: '#/components/responses/FaltanCampos'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /categories/{categoryId}:
+    parameters:
+      - name: categoryId
+        in: path
+        required: true
+        description: Id de la categoría.
+        schema:
+          $ref: '#/components/schemas/CategoriaId'
+
+    get:
+      tags: [Categorías]
+      operationId: obtenerCategoria
+      summary: Devuelve una categoría
+      security: []
+      responses:
+        '200':
+          description: La categoría.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Categoria'
+        '400':
+          $ref: '#/components/responses/PeticionInvalida'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Token emitido por Usuarios. El catálogo lo valida contra ese servicio.
+
+  parameters:
+    Sku:
+      name: sku
+      in: path
+      required: true
+      description: SKU del producto.
+      schema:
+        $ref: '#/components/schemas/Sku'
+    Page:
+      name: page
+      in: query
+      description: Número de página. Arranca en 1.
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      description: Cantidad de productos por página. Un valor mayor que 100 devuelve 400.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    Sku:
+      type: string
+      description: Código del producto. Mayúsculas y números, en grupos separados por guiones.
+      minLength: 3
+      maxLength: 50
+      pattern: '^[A-Z0-9]+(-[A-Z0-9]+)*$'
+      examples: [BK-001]
+
+    CategoriaId:
+      type: string
+      description: Id de la categoría. Minúsculas y números, en grupos separados por guiones.
+      minLength: 3
+      maxLength: 50
+      pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+      examples: [cat-libros]
+
+    Tipo:
+      type: string
+      description: '`FISICO` se envía y necesita `peso` y `volumen`; `DIGITAL` no se envía y no los lleva.'
+      enum: [FISICO, DIGITAL]
+
+    NombreProducto:
+      type: string
+      minLength: 3
+      maxLength: 200
+      examples: [Libro POO]
+
+    Descripcion:
+      type: string
+      description: Descripción libre. Es opcional.
+      examples: [Programación orientada a objetos, tapa blanda.]
+
+    Precio:
+      type: number
+      description: Precio de venta. Mayor que 0.
+      exclusiveMinimum: 0
+      examples: [15000]
+
+    Peso:
+      type: number
+      description: Peso en kilogramos. Mayor que 0.
+      exclusiveMinimum: 0
+      examples: [0.45]
+
+    Volumen:
+      type: number
+      description: Volumen en metros cúbicos. Mayor que 0.
+      exclusiveMinimum: 0
+      examples: [0.0012]
+
+    PesoYVolumenSegunTipo:
+      description: '`peso` y `volumen` son obligatorios si el producto es `FISICO` y no van si es `DIGITAL`.'
+      if:
+        properties:
+          tipo:
+            const: FISICO
+        required: [tipo]
+      then:
+        required: [peso, volumen]
+        properties:
+          peso: true
+          volumen: true
+      else:
+        properties:
+          peso: false
+          volumen: false
+
+    Producto:
+      type: object
+      description: Detalle de un producto.
+      required: [sku, nombre, tipo, precio, categoria, cantidad]
+      properties:
+        sku:
+          $ref: '#/components/schemas/Sku'
+        nombre:
+          $ref: '#/components/schemas/NombreProducto'
+        descripcion:
+          $ref: '#/components/schemas/Descripcion'
+        tipo:
+          $ref: '#/components/schemas/Tipo'
+        precio:
+          $ref: '#/components/schemas/Precio'
+        peso:
+          $ref: '#/components/schemas/Peso'
+        volumen:
+          $ref: '#/components/schemas/Volumen'
+        categoria:
+          $ref: '#/components/schemas/Categoria'
+        cantidad:
+          type: [integer, 'null']
+          description: Stock disponible, consultado a Inventario. Viene en `null` si Inventario no responde o todavía no tiene el producto.
+          minimum: 0
+          examples: [10]
+      allOf:
+        - $ref: '#/components/schemas/PesoYVolumenSegunTipo'
+
+    ProductoAlta:
+      type: object
+      description: Body para crear un producto. No acepta campos que no estén acá.
+      required: [sku, nombre, tipo, precio, categoriaId]
+      additionalProperties: false
+      properties:
+        sku:
+          $ref: '#/components/schemas/Sku'
+        nombre:
+          $ref: '#/components/schemas/NombreProducto'
+        descripcion:
+          $ref: '#/components/schemas/Descripcion'
+        tipo:
+          $ref: '#/components/schemas/Tipo'
+        precio:
+          $ref: '#/components/schemas/Precio'
+        peso:
+          $ref: '#/components/schemas/Peso'
+        volumen:
+          $ref: '#/components/schemas/Volumen'
+        categoriaId:
+          $ref: '#/components/schemas/CategoriaId'
+      allOf:
+        - $ref: '#/components/schemas/PesoYVolumenSegunTipo'
+
+    ProductoCambio:
+      type: object
+      description: Body para modificar un producto. Todos los campos son opcionales, pero hay que mandar al menos uno.
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        nombre:
+          $ref: '#/components/schemas/NombreProducto'
+        descripcion:
+          $ref: '#/components/schemas/Descripcion'
+        precio:
+          $ref: '#/components/schemas/Precio'
+        peso:
+          $ref: '#/components/schemas/Peso'
+        volumen:
+          $ref: '#/components/schemas/Volumen'
+        categoriaId:
+          $ref: '#/components/schemas/CategoriaId'
+
+    ProductoResumen:
+      type: object
+      description: Lo que muestra el listado de cada producto.
+      required: [sku, nombre, precio]
+      properties:
+        sku:
+          $ref: '#/components/schemas/Sku'
+        nombre:
+          $ref: '#/components/schemas/NombreProducto'
+        precio:
+          $ref: '#/components/schemas/Precio'
+
+    PaginaProductos:
+      type: object
+      required: [items, page, pageSize, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductoResumen'
+        page:
+          type: integer
+          description: Número de la página devuelta.
+          minimum: 1
+          examples: [1]
+        pageSize:
+          type: integer
+          description: Tamaño de página usado.
+          minimum: 1
+          maximum: 100
+          examples: [20]
+        total:
+          type: integer
+          description: Cantidad de productos que cumplen los filtros, sumando todas las páginas.
+          minimum: 0
+          examples: [1]
+
+    Categoria:
+      type: object
+      required: [id, nombre]
+      properties:
+        id:
+          $ref: '#/components/schemas/CategoriaId'
+        nombre:
+          type: string
+          minLength: 3
+          maxLength: 100
+          examples: [Libros]
+
+    ListaCategorias:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Categoria'
+
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Código del error, en PascalCase y sin espacios.
+          examples: [RecursoNoEncontrado]
+        message:
+          type: string
+          description: Detalle legible del error.
+          examples: [No existe un producto con el SKU BK-001]
+
+  responses:
+    PeticionInvalida:
+      description: El body está mal formado, un valor es inválido o se mandó un campo que la operación no acepta.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: PeticionInvalida
+            message: 'precio: debe ser mayor que 0'
+    NoAutorizado:
+      description: Falta la `X-API-Key` o es inválida.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: NoAutorizado
+            message: Se requiere una X-API-Key válida para esta operación
+    SinPermiso:
+      description: La `X-API-Key` es válida pero no tiene permiso para la operación.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: SinPermiso
+            message: La X-API-Key no tiene permiso para esta operación
+    NoEncontrado:
+      description: El recurso no existe.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: RecursoNoEncontrado
+            message: No existe un producto con el SKU BK-001
+    FaltanCampos:
+      description: Faltan campos obligatorios.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: FaltanCamposObligatorios
+            message: 'Faltan campos obligatorios: peso, volumen'
+    ErrorInterno:
+      description: Error inesperado del servidor.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: ErrorInternoDelServidor
+            message: Ocurrió un error inesperado
