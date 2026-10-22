@@ -1,0 +1,47 @@
+# Levanta los servicios del marketplace en la compu. Por ahora, el catálogo y su MySQL.
+# Las contraseñas salen del .env de la raíz: copiá .env.example como .env y completalo.
+
+services:
+  catalog:
+    build: ./services/catalog
+    ports:
+      - "8082:8082"
+    environment:
+      DB_URL: jdbc:mysql://catalog-db:3306/catalog?serverTimezone=UTC
+      DB_USER: catalog
+      DB_PASSWORD: ${CATALOG_DB_PASSWORD:?Falta CATALOG_DB_PASSWORD. Copiá .env.example como .env y completala}
+      # Las URLs de Usuarios, Inventario y Reseñas no se pasan hasta que esos servicios
+      # estén en el Compose: stock y ratingPromedio vienen en null.
+    depends_on:
+      # Sin el healthcheck, Compose espera a que arranque el contenedor, no a que MySQL acepte conexiones.
+      catalog-db:
+        condition: service_healthy
+
+  catalog-db:
+    # Tag exacto: los parches los sube Dependabot, el salto a MySQL 9 se hace a mano.
+    image: mysql:8.4.13
+    environment:
+      MYSQL_DATABASE: catalog
+      MYSQL_USER: catalog
+      MYSQL_PASSWORD: ${CATALOG_DB_PASSWORD:?Falta CATALOG_DB_PASSWORD. Copiá .env.example como .env y completala}
+      # En local nadie usa root: el usuario catalog tiene todos los permisos sobre su base.
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    ports:
+      # Solo en la compu, y en el 3307 para no chocar con un MySQL instalado.
+      - "127.0.0.1:${CATALOG_DB_PORT:-3307}:3306"
+    volumes:
+      # down lo deja, down -v lo borra.
+      - catalog-db-data:/var/lib/mysql
+    healthcheck:
+      # Por TCP: por socket da sano antes de tiempo, porque mientras se inicializa la imagen
+      # levanta un MySQL temporal sin red. mysqladmin ping devuelve 0 si el servidor responde,
+      # aunque rechace el usuario, así que no hace falta la contraseña.
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      # La primera vez MySQL tarda en crear la base.
+      start_period: 60s
+
+volumes:
+  catalog-db-data:

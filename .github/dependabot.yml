@@ -24,3 +24,32 @@ updates:
       catalog-minor-patch:
         patterns: ["*"]
         update-types: ["minor", "patch"]
+
+  # Las imágenes del Dockerfile del catálogo. El grupo hace que el JDK y el JRE suban juntos.
+  # Java 25 se sube a mano, junto con el pom y el CI.
+  - package-ecosystem: docker
+    directory: /services/catalog
+    target-branch: develop
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      - dependency-name: eclipse-temurin
+        update-types: ["version-update:semver-major"]
+    groups:
+      catalog-docker-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # Las imágenes del Compose de la raíz. MySQL 9 se sube a mano, junto con Testcontainers.
+  - package-ecosystem: docker-compose
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      - dependency-name: mysql
+        update-types: ["version-update:semver-major"]

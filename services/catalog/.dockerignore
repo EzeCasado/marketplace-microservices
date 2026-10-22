@@ -1,0 +1,11 @@
+# Lo que no entra al contexto de la imagen. El .env local nunca tiene que terminar adentro.
+.env
+.env.*
+
+# Lo compila la etapa de build
+target/
+
+# IDEs
+.idea/
+*.iml
+.vscode/

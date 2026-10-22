@@ -24,6 +24,7 @@ jobs:
       pull-requests: read
     outputs:
       catalog: ${{ steps.filter.outputs.catalog }}
+      catalog-docker: ${{ steps.filter.outputs.catalog-docker }}
       docs-api: ${{ steps.filter.outputs.docs-api }}
     steps:
       - uses: actions/checkout@v7
@@ -33,6 +34,9 @@ jobs:
           filters: |
             catalog:
               - 'services/catalog/**'
+            catalog-docker:
+              - 'services/catalog/**'
+              - 'docker-compose.yml'
             docs-api:
               - 'docs/api/**'
 
@@ -55,6 +59,37 @@ jobs:
       - name: Build and run tests
         run: mvn -B verify
 
+  # Levanta el catálogo y su MySQL con el Compose de la raíz y le pega a GET /categories,
+  # para que el Dockerfile o el Compose no se rompan sin que nadie lo vea.
+  # La contraseña de la base se genera acá: no usa secrets del repo.
+  catalog-docker:
+    name: Catalog (Docker Compose)
+    needs: changes
+    if: needs.changes.outputs.catalog-docker == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      # Va a GITHUB_ENV y no solo al paso del up: el Compose la pide en cada comando,
+      # también en logs y down.
+      - name: Generate database password
+        run: |
+          password=$(openssl rand -hex 16)
+          echo "::add-mask::$password"
+          echo "CATALOG_DB_PASSWORD=$password" >> "$GITHUB_ENV"
+      # --wait espera a MySQL sano y al catálogo arrancado, no listo: no tiene healthcheck.
+      - name: Start services
+        run: docker compose up -d --build --wait --wait-timeout 180
+      # Reintenta cada 3 s, también con la conexión rechazada o un error HTTP, hasta 90 s.
+      - name: Check GET /categories
+        run: curl --fail --silent --show-error --retry 30 --retry-delay 3 --retry-max-time 90 --retry-all-errors http://localhost:8082/categories
+      - name: Show logs
+        if: failure()
+        run: docker compose logs
+      - name: Stop services
+        if: always()
+        run: docker compose down -v
+
   # Valida los contratos OpenAPI listados en docs/api/redocly.yaml.
   # Usa el Node que ya trae el runner.
   docs-api:
@@ -73,7 +108,7 @@ jobs:
   ci-ok:
     name: CI OK
     if: always()
-    needs: [changes, catalog, docs-api]
+    needs: [changes, catalog, catalog-docker, docs-api]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

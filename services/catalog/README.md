@@ -2,13 +2,21 @@
 
 Servicio de catálogo de productos: productos, categorías y búsqueda. Es el módulo 2 de la consigna.
 
-Viene del trabajo práctico de POO ([repo original](https://github.com/EzeCasado/POO_Catalogo_Productos_TPI)), copiado sin su historial. El código está tal cual se entregó; lo único que cambió es la configuración, que ahora sale de variables de entorno, y lo que pidió la migración a Spring Boot 4.1. El frontend del TPI no se trajo.
+Viene del trabajo práctico de POO ([repo original](https://github.com/EzeCasado/POO_Catalogo_Productos_TPI)), copiado sin su historial, y desde ahí se va alineando con la consigna. Lo que falta y lo que ya se hizo está en la [épica #8](https://github.com/EzeCasado/marketplace-microservices/issues/8) y, desde la primera versión, en el `CHANGELOG.md` del servicio. El frontend del TPI no se trajo.
 
 ## Tecnología
 
 Java 21, Spring Boot 4.1 (Web MVC, Data JPA, Validation), MySQL, MapStruct y Lombok.
 
 ## Cómo correrlo
+
+### Con Docker
+
+El catálogo y su MySQL se levantan juntos con el Compose de la raíz. Los pasos están en el [README de la raíz](../../README.md#cómo-levantarlo).
+
+En el CI, el job `Catalog (Docker Compose)` levanta lo mismo y le pega a `GET /categories` en cada pull request que toca `services/catalog` o el Compose.
+
+### Con Maven
 
 Hace falta Java 21 o más nuevo y un MySQL accesible.
 
@@ -19,9 +27,19 @@ Hace falta Java 21 o más nuevo y un MySQL accesible.
 ./mvnw spring-boot:run
 ```
 
-Queda escuchando en el puerto `8082`. Si Usuarios, Inventario o Reseñas no están corriendo, el catálogo funciona igual, pero `stock` y `ratingPromedio` vienen en `null`.
+Si no tenés un MySQL instalado, usá el del Compose. Desde la raíz del repo, con el `.env` de la raíz completo:
 
-La excepción son las escrituras (`POST`, `PATCH` y `DELETE`): validan la `X-API-Key` contra Usuarios y, sin una respuesta 200, la rechazan. Para escribir en local hace falta Usuarios corriendo o cualquier servicio que responda 200 en `USERS_VALIDATE_URL` (por ejemplo, un WireMock suelto).
+```bash
+docker compose up -d catalog-db
+```
+
+En el `.env` del catálogo, poné `DB_URL=jdbc:mysql://localhost:3307/catalog?serverTimezone=UTC` y en `DB_PASSWORD` la misma `CATALOG_DB_PASSWORD` del `.env` de la raíz.
+
+### Con las dos formas
+
+Queda escuchando en el puerto `8082`. Si Usuarios, Inventario o Reseñas no están corriendo, el catálogo funciona igual, pero `stock` y `ratingPromedio` vienen en `null`. En Docker vienen siempre en `null`: el Compose todavía no tiene esos servicios.
+
+La excepción son las escrituras (`POST`, `PATCH` y `DELETE`): validan la `X-API-Key` contra Usuarios y, sin una respuesta 200, la rechazan. Para escribir en local hace falta Usuarios corriendo o cualquier servicio que responda 200 en `USERS_VALIDATE_URL` (por ejemplo, un WireMock suelto). En Docker, por ahora, se rechazan siempre.
 
 ## Tests
 
