@@ -21,9 +21,27 @@ Nace del trabajo práctico integrador de Programación Orientada a Objetos (UNSA
 | API Gateway | Punto de entrada único | Spring |
 | Asistente con IA | Un chat que usa las APIs de los demás servicios | Python |
 
-Todo se va a levantar junto con Docker Compose.
-
 Hoy está el catálogo, en [`services/catalog/`](services/catalog/), traído del TPI.
+
+## Cómo levantarlo
+
+Todo se levanta con Docker Compose, desde la raíz del repo. Por ahora, el catálogo y su MySQL. Hace falta Docker; en Windows, Docker Desktop abierto.
+
+1. Copiá `.env.example` como `.env` y completá `CATALOG_DB_PASSWORD`. El `.env` no se commitea.
+2. Levantalo:
+
+```bash
+docker compose up --build
+```
+
+El catálogo queda en `http://localhost:8082` y su MySQL en `127.0.0.1:3307`. Si el 3307 ya está tomado, cambialo con `CATALOG_DB_PORT` en el `.env`. La primera vez tarda más: baja las imágenes y compila el catálogo.
+
+Para bajarlo, `down` guarda los datos de MySQL y `down -v` los borra:
+
+```bash
+docker compose down
+docker compose down -v
+```
 
 ## Cómo se trabaja
 
