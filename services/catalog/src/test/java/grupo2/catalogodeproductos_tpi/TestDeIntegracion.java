@@ -3,8 +3,9 @@ package grupo2.catalogodeproductos_tpi;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.resttestclient.TestRestTemplate;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -19,10 +20,11 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
  *
  * Todas las clases de test la extienden, así comparten un solo contexto de
  * Spring: la app, el MySQL y los WireMock arrancan una vez para toda la corrida.
- * Una clase que sume su propio @DynamicPropertySource, @MockBean o @Import
+ * Una clase que sume su propio @DynamicPropertySource, @MockitoBean o @Import
  * arma otro contexto y arranca otro MySQL.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureTestRestTemplate
 @Import(TestcontainersConfiguration.class)
 public abstract class TestDeIntegracion {
 
