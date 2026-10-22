@@ -62,8 +62,7 @@ public class UsuarioClient {
 
         } catch(Exception e){
 
-            // La excepción va de último argumento para que SLF4J imprima el stack trace con todas las causas.
-            log.warn("API Usuarios: No se pudo validar el token. Causa: {}", e.getMessage(), e);
+            log.warn("API Usuarios: No se pudo validar el token. Causa: {}", e.getMessage());
 
             return false;
 
