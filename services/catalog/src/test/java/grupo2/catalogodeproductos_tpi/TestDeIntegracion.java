@@ -3,10 +3,10 @@ package grupo2.catalogodeproductos_tpi;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.resttestclient.TestRestTemplate;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -19,10 +19,11 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
  *
  * Todas las clases de test la extienden, así comparten un solo contexto de
  * Spring: la app, el MySQL y los WireMock arrancan una vez para toda la corrida.
- * Una clase que sume su propio @DynamicPropertySource, @MockBean o @Import
+ * Una clase que sume su propio @DynamicPropertySource, @MockitoBean o @Import
  * arma otro contexto y arranca otro MySQL.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureTestRestTemplate
 @Import(TestcontainersConfiguration.class)
 public abstract class TestDeIntegracion {
 
@@ -45,18 +46,8 @@ public abstract class TestDeIntegracion {
         registry.add("api.resenas.url", () -> resenas.baseUrl() + "/reviews/rating/");
     }
 
-    private static final JdkClientHttpRequestFactory clienteHttp = new JdkClientHttpRequestFactory();
-
     @Autowired
     protected TestRestTemplate restTemplate;
-
-    // El cliente que trae el TestRestTemplate (HttpURLConnection) no puede leer un 401: tira
-    // "cannot retry due to server authentication, in streaming mode". El de java.net.http sí.
-    // Cambia solo el cliente con el que el test le pega a la app, no el RestTemplate de la app.
-    @BeforeEach
-    void usarElClienteHttpDeJava() {
-        restTemplate.getRestTemplate().setRequestFactory(clienteHttp);
-    }
 
     // Cada test arranca sin stubs ni pedidos registrados. Lo que no tiene stub, WireMock lo responde con 404.
     @BeforeEach

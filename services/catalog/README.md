@@ -2,15 +2,15 @@
 
 Servicio de catálogo de productos: productos, categorías y búsqueda. Es el módulo 2 de la consigna.
 
-Viene del trabajo práctico de POO ([repo original](https://github.com/EzeCasado/POO_Catalogo_Productos_TPI)), copiado sin su historial. El código está tal cual se entregó; lo único que cambió es la configuración, que ahora sale de variables de entorno. El frontend del TPI no se trajo.
+Viene del trabajo práctico de POO ([repo original](https://github.com/EzeCasado/POO_Catalogo_Productos_TPI)), copiado sin su historial. El código está tal cual se entregó; lo único que cambió es la configuración, que ahora sale de variables de entorno, y lo que pidió la migración a Spring Boot 4.1. El frontend del TPI no se trajo.
 
 ## Tecnología
 
-Java 21, Spring Boot 3.3 (Web, Data JPA, Validation), MySQL, MapStruct y Lombok.
+Java 21, Spring Boot 4.1 (Web MVC, Data JPA, Validation), MySQL, MapStruct y Lombok.
 
 ## Cómo correrlo
 
-Hace falta Java 21 y un MySQL accesible.
+Hace falta Java 21 o más nuevo y un MySQL accesible.
 
 1. Copiá `.env.example` como `.env` y completá `DB_PASSWORD`. Las demás variables tienen valores por defecto.
 2. Definí las variables en tu terminal o en tu IDE y levantalo:
@@ -32,18 +32,12 @@ Son tests de integración: levantan la aplicación completa en un puerto libre, 
 Hace falta:
 
 - **Docker andando.** En Windows, Docker Desktop abierto. La primera corrida baja la imagen `mysql:8.4` y tarda más.
-- **Java 21.** El wrapper usa el JDK de `JAVA_HOME` o, si no está definida, el `java` del PATH. Con el JDK 26 `src/main` no compila, porque el Lombok que trae Boot 3.3 no lo soporta.
+- **Java 21 o más nuevo.** El wrapper usa el JDK de `JAVA_HOME` o, si no está definida, el `java` del PATH.
 
 Se corren desde `services/catalog`. En Windows:
 
 ```powershell
 .\mvnw.cmd verify
-```
-
-Si el `java` por defecto no es el 21, en PowerShell se puede apuntar `JAVA_HOME` solo para esa terminal, con la carpeta donde esté instalado:
-
-```powershell
-$env:JAVA_HOME = "C:\Program Files\Java\jdk-21"
 ```
 
 En Linux o Mac:
