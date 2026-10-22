@@ -21,12 +21,14 @@ Hace falta Java 21 o más nuevo y un MySQL accesible.
 
 Queda escuchando en el puerto `8082`. Si Usuarios, Inventario o Reseñas no están corriendo, el catálogo funciona igual, pero `stock` y `ratingPromedio` vienen en `null`.
 
+La excepción son las escrituras (`POST`, `PATCH` y `DELETE`): validan la `X-API-Key` contra Usuarios y, sin una respuesta 200, la rechazan. Para escribir en local hace falta Usuarios corriendo o cualquier servicio que responda 200 en `USERS_VALIDATE_URL` (por ejemplo, un WireMock suelto).
+
 ## Tests
 
 Son tests de integración: levantan la aplicación completa en un puerto libre, contra un MySQL 8.4 en un contenedor (Testcontainers), con Usuarios, Inventario y Reseñas simulados con WireMock. No hace falta tener un MySQL propio ni los otros servicios corriendo.
 
 - `CatalogoDeProductosTpiApplicationTests`: la app arranca contra MySQL y `GET /categories` lista lo que hay en la base.
-- `ProductoPorSkuTests`: `/products/{sku}`. Un SKU que no existe, el detalle con Inventario caído o lento, y la baja con y sin `X-API-Key`. Sirve de molde para los tests nuevos.
+- `ProductoPorSkuTests`: `/products/{sku}`. Un SKU que no existe, el detalle con Inventario caído o lento, la baja con y sin `X-API-Key`, y que ninguna key pasa sin Usuarios, ni siquiera `TEST-KEY`, la que aceptaba el TPI. Sirve de molde para los tests nuevos.
 - `TestDeIntegracion`: la clase base que arma la app, el MySQL y los WireMock. Los tests nuevos la extienden.
 
 Hace falta:
@@ -73,4 +75,3 @@ Se revisaron leyendo el código y van a ir como issues. Las principales:
 - `GET /products` filtra por `nombre` y devuelve un array; la consigna pide `q`, rango de precio, paginación y la forma `{items, page, pageSize, total}`.
 - El cliente de Inventario espera el campo `disponibilidad`; la consigna devuelve `disponible`.
 - El manejador de errores devuelve 500 para cualquier error de Spring que no maneje (JSON roto, ruta inexistente).
-- El interceptor acepta la clave `TEST-KEY` sin validarla contra Usuarios. Se dejó para la demo del TPI y hay que sacarla.

@@ -1,5 +1,6 @@
 package grupo2.catalogodeproductos_tpi;
 
+import com.github.tomakehurst.wiremock.http.Fault;
 import com.jayway.jsonpath.JsonPath;
 import grupo2.catalogodeproductos_tpi.model.Categoria;
 import grupo2.catalogodeproductos_tpi.model.Producto;
@@ -12,11 +13,13 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
 import java.time.Duration;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
@@ -26,6 +29,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.serviceUnavailable;
+import static com.github.tomakehurst.wiremock.client.WireMock.unauthorized;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -138,6 +142,36 @@ class ProductoPorSkuTests extends TestDeIntegracion {
         assertThat(error).isEqualTo("NoAutorizado");
         assertThat(mensaje).isNotBlank();
         usuarios.verify(0, anyRequestedFor(anyUrl()));
+        assertThat(productoRepository.findBySku(SKU)).get().extracting(Producto::getActivo).isEqualTo(true);
+    }
+
+    @Test
+    void laTestKeyQueUsuariosRechazaNoDejaDarDeBaja() {
+        guardarProducto();
+        usuarios.stubFor(post("/usuarios/validar").willReturn(unauthorized()));
+
+        ResponseEntity<String> respuesta = restTemplate.exchange("/products/{sku}", HttpMethod.DELETE,
+                conApiKey("TEST-KEY"), String.class, SKU);
+
+        // El código exacto no se revisa: hoy es 403 y el #18 lo pasa a 401.
+        assertThat(respuesta.getStatusCode()).matches(HttpStatusCode::is4xxClientError, "es un 4xx");
+        usuarios.verify(postRequestedFor(urlEqualTo("/usuarios/validar"))
+                .withHeader("X-API-Key", equalTo("TEST-KEY")));
+        assertThat(productoRepository.findBySku(SKU)).get().extracting(Producto::getActivo).isEqualTo(true);
+    }
+
+    @Test
+    void laTestKeyConUsuariosCaidoNoDejaDarDeBaja() {
+        guardarProducto();
+        // Usuarios cierra la conexión sin responder. CONNECTION_RESET_BY_PEER no sirve:
+        // en Windows deja la conexión colgada en vez de cortarla.
+        usuarios.stubFor(post("/usuarios/validar").willReturn(aResponse().withFault(Fault.EMPTY_RESPONSE)));
+
+        ResponseEntity<String> respuesta = restTemplate.exchange("/products/{sku}", HttpMethod.DELETE,
+                conApiKey("TEST-KEY"), String.class, SKU);
+
+        // Solo se revisa que no pase: el #18 decide si con Usuarios caído da 401 o 503.
+        assertThat(respuesta.getStatusCode()).matches(HttpStatusCode::isError, "es un 4xx o un 5xx");
         assertThat(productoRepository.findBySku(SKU)).get().extracting(Producto::getActivo).isEqualTo(true);
     }
 
