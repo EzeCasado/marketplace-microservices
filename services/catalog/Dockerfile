@@ -1,8 +1,9 @@
 # Imagen del catálogo en tres etapas: compila con Maven, separa el jar en capas
 # y lo corre sobre un JRE, sin el JDK ni el código fuente.
+# Los tags son exactos: los parches los sube Dependabot, el salto de Java se hace a mano.
 
 # ---------- 1. Compilar ----------
-FROM eclipse-temurin:21-jdk-noble AS build
+FROM eclipse-temurin:21.0.12.1_1-jdk-noble AS build
 WORKDIR /build
 
 # Desde Windows el permiso de ejecución de mvnw no viaja, por eso el --chmod.
@@ -22,13 +23,13 @@ RUN --mount=type=cache,target=/root/.m2 ./mvnw package -B -q -DskipTests \
 
 # ---------- 2. Extraer las capas ----------
 # Como la documentación de Spring Boot 4.1 (jarmode tools).
-FROM eclipse-temurin:21-jre-noble AS extract
+FROM eclipse-temurin:21.0.12.1_1-jre-noble AS extract
 WORKDIR /builder
 COPY --from=build /build/application.jar application.jar
 RUN java -Djarmode=tools -jar application.jar extract --layers --destination extracted
 
 # ---------- 3. Correr ----------
-FROM eclipse-temurin:21-jre-noble
+FROM eclipse-temurin:21.0.12.1_1-jre-noble
 WORKDIR /application
 
 # Usuario sin root, como la guía de Java de Docker.

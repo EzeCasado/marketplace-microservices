@@ -18,7 +18,8 @@ services:
         condition: service_healthy
 
   catalog-db:
-    image: mysql:8.4
+    # Tag exacto: los parches los sube Dependabot, el salto a MySQL 9 se hace a mano.
+    image: mysql:8.4.13
     environment:
       MYSQL_DATABASE: catalog
       MYSQL_USER: catalog
