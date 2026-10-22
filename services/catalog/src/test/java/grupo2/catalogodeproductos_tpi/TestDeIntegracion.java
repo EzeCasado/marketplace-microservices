@@ -7,7 +7,6 @@ import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -47,18 +46,8 @@ public abstract class TestDeIntegracion {
         registry.add("api.resenas.url", () -> resenas.baseUrl() + "/reviews/rating/");
     }
 
-    private static final JdkClientHttpRequestFactory clienteHttp = new JdkClientHttpRequestFactory();
-
     @Autowired
     protected TestRestTemplate restTemplate;
-
-    // El cliente que trae el TestRestTemplate (HttpURLConnection) no puede leer un 401: tira
-    // "cannot retry due to server authentication, in streaming mode". El de java.net.http sí.
-    // Cambia solo el cliente con el que el test le pega a la app, no el RestTemplate de la app.
-    @BeforeEach
-    void usarElClienteHttpDeJava() {
-        restTemplate.getRestTemplate().setRequestFactory(clienteHttp);
-    }
 
     // Cada test arranca sin stubs ni pedidos registrados. Lo que no tiene stub, WireMock lo responde con 404.
     @BeforeEach
