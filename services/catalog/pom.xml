@@ -23,6 +23,9 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <!-- Definimos la version de MapStruct en un solo lugar -->
         <org.mapstruct.version>1.6.3</org.mapstruct.version>
+        <!-- Temporal, para el #32: surefire toma el argLine de esta propiedad y loguea los pedidos
+             del cliente HTTP del JDK en los tests. Se saca en la tarea 2 de ST-Fix-01 -->
+        <argLine>-Djdk.httpclient.HttpClient.log=errors,requests,headers</argLine>
     </properties>
 
     <!-- 

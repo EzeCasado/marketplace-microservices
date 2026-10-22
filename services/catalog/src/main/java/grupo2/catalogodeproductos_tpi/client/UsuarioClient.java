@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +29,8 @@ public class UsuarioClient {
     // Lee la URL desde application.properties
     @Value("${api.usuarios.url}")
     private String USUARIO_API_URL;
+
+    private static final Logger log = LoggerFactory.getLogger(UsuarioClient.class);
 
 
 
@@ -57,6 +61,9 @@ public class UsuarioClient {
 
 
         } catch(Exception e){
+
+            // La excepción va de último argumento para que SLF4J imprima el stack trace con todas las causas.
+            log.warn("API Usuarios: No se pudo validar el token. Causa: {}", e.getMessage(), e);
 
             return false;
 
