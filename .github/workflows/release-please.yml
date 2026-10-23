@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@v5
         with:
           # Token personal: con el GITHUB_TOKEN el CI no corre en el pull request
           # de versión, y las reglas de `main` no dejarían integrarlo.
