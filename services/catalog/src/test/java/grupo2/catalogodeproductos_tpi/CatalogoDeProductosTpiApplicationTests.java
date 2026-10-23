@@ -34,6 +34,7 @@ class CatalogoDeProductosTpiApplicationTests extends TestDeIntegracion {
     @Test
     void listaLasCategoriasGuardadasEnLaBase() {
         libros = new Categoria();
+        libros.setId("cat-libros");
         libros.setNombre("Libros");
         libros = categoriaRepository.save(libros);
 

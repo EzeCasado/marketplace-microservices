@@ -66,5 +66,5 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
             "(:nombre IS NULL OR lower(p.nombre) LIKE lower(concat('%', :nombre, '%'))) AND " +
             "(:categoriaId IS NULL OR p.categoria.id = :categoriaId)")
     List<Producto> searchProducts(@Param("nombre") String nombre,
-                                  @Param("categoriaId") Long categoriaId);
+                                  @Param("categoriaId") String categoriaId);
 }

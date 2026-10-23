@@ -87,7 +87,7 @@ public class ProductoService {
      * con datos de las APIs de Inventario y Reseñas.
      */
     @Transactional(readOnly = true)
-    public List<ProductoResponseDTO> buscarProductos(String nombre, Long categoriaId) {
+    public List<ProductoResponseDTO> buscarProductos(String nombre, String categoriaId) {
 
         // 1. Buscamos en nuestra BD usando el método searchProducts del repositorio
         List<Producto> productosBase = productoRepository.searchProducts(nombre, categoriaId);

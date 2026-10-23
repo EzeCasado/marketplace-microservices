@@ -320,14 +320,22 @@ paths:
         '403':
           $ref: '#/components/responses/SinPermiso'
         '409':
-          description: Ya existe una categoría con ese `id`.
+          description: Ya existe una categoría con ese `id` o con ese `nombre`.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-              example:
-                error: Conflicto
-                message: Ya existe una categoría con el id cat-libros
+              examples:
+                idRepetido:
+                  summary: El `id` ya existe
+                  value:
+                    error: Conflicto
+                    message: Ya existe una categoría con el id cat-libros
+                nombreRepetido:
+                  summary: El `nombre` ya existe
+                  value:
+                    error: Conflicto
+                    message: Ya existe una categoría con el nombre Libros
         '422':
           $ref: '#/components/responses/FaltanCampos'
         '500':

@@ -69,7 +69,7 @@ public class ProductoController {
     @GetMapping
     public ResponseEntity<List<ProductoResponseDTO>> searchProducts(
             @RequestParam(required = false) String nombre,
-            @RequestParam(required = false) Long categoriaId) {
+            @RequestParam(required = false) String categoriaId) {
 
         List<ProductoResponseDTO> productos = productoService.buscarProductos(nombre, categoriaId);
         return ResponseEntity.ok(productos);

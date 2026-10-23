@@ -28,7 +28,6 @@ public interface CategoriaMapper {
      * @param dto El Data Transfer Object.
      * @return La entidad JPA.
      */
-    @Mapping(target = "id", ignore = true) // Ignoramos el ID al crear una nueva entidad desde un DTO.
     @Mapping(target = "productos", ignore = true) // No mapeamos la lista de productos al crear/actualizar una categoría.
     Categoria toCategoria(CategoriaDTO dto);
 

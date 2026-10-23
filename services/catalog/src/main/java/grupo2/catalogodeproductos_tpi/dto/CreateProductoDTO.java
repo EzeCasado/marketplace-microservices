@@ -25,6 +25,6 @@ public record CreateProductoDTO(
     BigDecimal peso,
 
     @NotNull(message = "El ID de la categoría no puede ser nulo")
-    Long categoriaId
+    String categoriaId
 ) {
 }

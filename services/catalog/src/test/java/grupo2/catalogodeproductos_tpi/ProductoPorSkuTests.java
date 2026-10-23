@@ -251,6 +251,7 @@ class ProductoPorSkuTests extends TestDeIntegracion {
 
     private void guardarProducto() {
         categoria = new Categoria();
+        categoria.setId("cat-libros");
         categoria.setNombre("Libros");
         categoria = categoriaRepository.save(categoria);
 
