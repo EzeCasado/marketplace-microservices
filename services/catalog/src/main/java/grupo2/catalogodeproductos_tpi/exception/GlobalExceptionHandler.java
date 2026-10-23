@@ -111,6 +111,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /**
+     * Maneja la excepción CategoriaInexistenteException (Error 400).
+     * Atrapa la excepción lanzada por ProductoService.
+     */
+    @ExceptionHandler(CategoriaInexistenteException.class)
+    public ResponseEntity<Object> handleCategoriaInexistenteException(
+            CategoriaInexistenteException ex, WebRequest request) {
+
+        Map<String, Object> body = cuerpo("PeticionInvalida", ex.getMessage());
+
+        return createResponseEntity(body, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
+
+    /**
      * Maneja la excepción ApiKeyInvalidaException (Error 401).
      * La lanza ApiKeyAuthInterceptor cuando falta la X-API-Key o Usuarios la rechaza.
      */

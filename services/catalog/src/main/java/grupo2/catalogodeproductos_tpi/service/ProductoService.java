@@ -3,11 +3,13 @@ package grupo2.catalogodeproductos_tpi.service;
 import grupo2.catalogodeproductos_tpi.client.InventarioClient;
 import grupo2.catalogodeproductos_tpi.client.ResenasClient;
 import grupo2.catalogodeproductos_tpi.dto.*;
+import grupo2.catalogodeproductos_tpi.exception.CategoriaInexistenteException;
 import grupo2.catalogodeproductos_tpi.exception.ResourceNotFoundException;
 import grupo2.catalogodeproductos_tpi.exception.SkuAlreadyExistsException;
 import grupo2.catalogodeproductos_tpi.mapper.ProductoMapper;
 import grupo2.catalogodeproductos_tpi.model.Categoria;
 import grupo2.catalogodeproductos_tpi.model.Producto;
+import grupo2.catalogodeproductos_tpi.repository.CategoriaRepository;
 import grupo2.catalogodeproductos_tpi.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,7 +25,7 @@ public class ProductoService {
 
     private final ProductoRepository productoRepository;
     private final ProductoMapper productoMapper;
-    private final CategoriaService categoriaService;
+    private final CategoriaRepository categoriaRepository;
     private final InventarioClient inventarioClient;
     private final ResenasClient resenasClient;
 
@@ -32,7 +34,11 @@ public class ProductoService {
         if (productoRepository.existsBySku(createDTO.sku())) {
             throw new SkuAlreadyExistsException("El SKU '" + createDTO.sku() + "' ya existe.");
         }
-        Categoria categoria = categoriaService.findByIdOrThrow(createDTO.categoriaId());
+        // Una categoría que no existe es un valor inválido del body (400), no un recurso
+        // que falta (404): por eso no se usa CategoriaService.findByIdOrThrow.
+        Categoria categoria = categoriaRepository.findById(createDTO.categoriaId())
+                .orElseThrow(() -> new CategoriaInexistenteException(
+                        "No existe una categoría con el id " + createDTO.categoriaId()));
 
         Producto producto = productoMapper.toProducto(createDTO);
         producto.setCategoria(categoria);
