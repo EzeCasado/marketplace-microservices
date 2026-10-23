@@ -18,15 +18,26 @@ info:
 
     **Códigos de error**
 
-    | Código | Cuándo |
-    |---|---|
-    | 400 | El body está mal formado, un valor es inválido o se manda un campo que la operación no acepta |
-    | 401 | Falta la `X-API-Key` o es inválida |
-    | 403 | La `X-API-Key` es válida pero no tiene permiso para la operación |
-    | 404 | El recurso no existe |
-    | 409 | Ya existe un recurso con ese identificador |
-    | 422 | Faltan campos obligatorios |
-    | 500 | Error inesperado del servidor |
+    | Código | `error` | Cuándo |
+    |---|---|---|
+    | 400 | `PeticionInvalida` | El body está mal formado, un valor es inválido o se manda un campo que la operación no acepta |
+    | 401 | `NoAutorizado` | Falta la `X-API-Key` o es inválida |
+    | 403 | `SinPermiso` | La `X-API-Key` es válida pero no tiene permiso para la operación |
+    | 404 | `RecursoNoEncontrado` | El recurso no existe |
+    | 405 | `MetodoNoPermitido` | La ruta existe pero no acepta ese método |
+    | 406 | `FormatoNoAceptable` | El cliente pide en `Accept` un formato que no es JSON |
+    | 409 | `Conflicto` | Ya existe un recurso con ese identificador |
+    | 415 | `TipoDeContenidoNoSoportado` | El body no viene como `application/json` |
+    | 422 | `FaltanCamposObligatorios` | Faltan campos obligatorios |
+    | 500 | `ErrorInternoDelServidor` | Error inesperado del servidor |
+    | 503 | `ServicioNoDisponible` | Usuarios no respondió y no se pudo validar la `X-API-Key` |
+
+    El 405, el 406 y el 415 pueden salir en cualquier operación y no se repiten en cada una.
+
+    Reglas del 422:
+
+    - Si en el mismo body faltan campos y hay valores inválidos, responde 422 con los campos que faltan.
+    - Un texto vacío o con solo espacios cuenta como un campo que falta.
 
 servers:
   - url: http://localhost:8082
@@ -169,6 +180,8 @@ paths:
           $ref: '#/components/responses/FaltanCampos'
         '500':
           $ref: '#/components/responses/ErrorInterno'
+        '503':
+          $ref: '#/components/responses/ServicioNoDisponible'
 
   /products/{sku}:
     parameters:
@@ -232,6 +245,8 @@ paths:
           $ref: '#/components/responses/FaltanCampos'
         '500':
           $ref: '#/components/responses/ErrorInterno'
+        '503':
+          $ref: '#/components/responses/ServicioNoDisponible'
 
     delete:
       tags: [Productos]
@@ -254,6 +269,8 @@ paths:
           $ref: '#/components/responses/NoEncontrado'
         '500':
           $ref: '#/components/responses/ErrorInterno'
+        '503':
+          $ref: '#/components/responses/ServicioNoDisponible'
 
   /categories:
     get:
@@ -315,6 +332,8 @@ paths:
           $ref: '#/components/responses/FaltanCampos'
         '500':
           $ref: '#/components/responses/ErrorInterno'
+        '503':
+          $ref: '#/components/responses/ServicioNoDisponible'
 
   /categories/{categoryId}:
     parameters:
@@ -645,3 +664,12 @@ components:
           example:
             error: ErrorInternoDelServidor
             message: Ocurrió un error inesperado
+    ServicioNoDisponible:
+      description: Usuarios no respondió y no se pudo validar la `X-API-Key`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: ServicioNoDisponible
+            message: No se pudo validar la X-API-Key en este momento

@@ -1,6 +1,9 @@
 package grupo2.catalogodeproductos_tpi.config;
 
 import grupo2.catalogodeproductos_tpi.client.UsuarioClient;
+import grupo2.catalogodeproductos_tpi.exception.ApiKeyInvalidaException;
+import grupo2.catalogodeproductos_tpi.exception.ApiKeySinPermisoException;
+import grupo2.catalogodeproductos_tpi.exception.UsuariosNoDisponibleException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
@@ -9,6 +12,9 @@ import org.springframework.web.servlet.HandlerInterceptor;
 /**
  * Interceptor de Spring (Guardia de Seguridad) que se ejecuta antes de cada petición.
  * Se encarga de validar el X-API-Key para operaciones de escritura (POST, PATCH, DELETE).
+ *
+ * Cuando rechaza una petición no escribe la respuesta: lanza una excepción y
+ * la responde GlobalExceptionHandler, así la forma del error sale de un solo lugar.
  */
 @Component
 public class ApiKeyAuthInterceptor implements HandlerInterceptor {
@@ -25,11 +31,13 @@ public class ApiKeyAuthInterceptor implements HandlerInterceptor {
      * @param request La petición HTTP entrante.
      * @param response La respuesta HTTP que se enviará.
      * @param handler El manejador (controlador) que gestionará la petición.
-     * @return true si la petición puede continuar, false si debe ser bloqueada.
-     * @throws Exception Si ocurre un error al escribir la respuesta de error.
+     * @return true si la petición puede continuar.
+     * @throws ApiKeyInvalidaException Si falta la key o Usuarios la rechaza (401).
+     * @throws ApiKeySinPermisoException Si la key es válida pero no tiene permiso (403).
+     * @throws UsuariosNoDisponibleException Si Usuarios no respondió (503).
      */
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
 
         String method = request.getMethod();
 
@@ -48,32 +56,17 @@ public class ApiKeyAuthInterceptor implements HandlerInterceptor {
         String apiKey = request.getHeader("X-Api-Key");
 
         if (apiKey == null || apiKey.trim().isEmpty()) {
-            // Error 401: No se proporcionó la Key
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-
-            response.setContentType("application/json");
-
-            response.getWriter().write("{\"error\": \"NoAutorizado\", \"message\": \"Se requiere un X-API-Key para esta operación\"}");
-
-            return false;
-
+            // Error 401: No se proporcionó la Key. No se llama a Usuarios.
+            throw new ApiKeyInvalidaException();
         }
 
         // Validamos la Key contra el Módulo 1
-        boolean esValido = usuarioClient.validarToken(apiKey);
-
-        if (esValido) {
-            // Key válida, la petición continúa.
-            return true;
-        } else {
-            // Error 403: La Key se proporcionó pero es inválida.
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.setContentType("application/json");
-            response.getWriter().write("{\"error\": \"TokenInvalido\", \"message\": \"El X-API-Key proporcionado no es válido o ha expirado\"}");
-            return false;
-        }
-
-
+        return switch (usuarioClient.validarToken(apiKey)) {
+            case VALIDA -> true;
+            case INVALIDA -> throw new ApiKeyInvalidaException();
+            case SIN_PERMISO -> throw new ApiKeySinPermisoException();
+            case NO_DISPONIBLE -> throw new UsuariosNoDisponibleException();
+        };
     }
 
 }

@@ -13,7 +13,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
@@ -23,11 +22,14 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.forbidden;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
 import static com.github.tomakehurst.wiremock.client.WireMock.serviceUnavailable;
 import static com.github.tomakehurst.wiremock.client.WireMock.unauthorized;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -153,11 +155,24 @@ class ProductoPorSkuTests extends TestDeIntegracion {
         ResponseEntity<String> respuesta = restTemplate.exchange("/products/{sku}", HttpMethod.DELETE,
                 conApiKey("TEST-KEY"), String.class, SKU);
 
-        // El código exacto no se revisa: hoy es 403 y el #18 lo pasa a 401.
-        assertThat(respuesta.getStatusCode()).matches(HttpStatusCode::is4xxClientError, "es un 4xx");
+        comprobarError(respuesta, HttpStatus.UNAUTHORIZED, "NoAutorizado",
+                "Se requiere una X-API-Key válida para esta operación");
         usuarios.verify(postRequestedFor(urlEqualTo("/usuarios/validar"))
                 .withHeader("X-API-Key", equalTo("TEST-KEY")));
-        assertThat(productoRepository.findBySku(SKU)).get().extracting(Producto::getActivo).isEqualTo(true);
+        comprobarQueSigueActivo();
+    }
+
+    @Test
+    void unaKeySinPermisoDa403() {
+        guardarProducto();
+        usuarios.stubFor(post("/usuarios/validar").willReturn(forbidden()));
+
+        ResponseEntity<String> respuesta = restTemplate.exchange("/products/{sku}", HttpMethod.DELETE,
+                conApiKey("clave-de-prueba"), String.class, SKU);
+
+        comprobarError(respuesta, HttpStatus.FORBIDDEN, "SinPermiso",
+                "La X-API-Key no tiene permiso para esta operación");
+        comprobarQueSigueActivo();
     }
 
     @Test
@@ -170,8 +185,67 @@ class ProductoPorSkuTests extends TestDeIntegracion {
         ResponseEntity<String> respuesta = restTemplate.exchange("/products/{sku}", HttpMethod.DELETE,
                 conApiKey("TEST-KEY"), String.class, SKU);
 
-        // Solo se revisa que no pase: el #18 decide si con Usuarios caído da 401 o 503.
-        assertThat(respuesta.getStatusCode()).matches(HttpStatusCode::isError, "es un 4xx o un 5xx");
+        comprobarServicioNoDisponible(respuesta);
+        comprobarQueSigueActivo();
+    }
+
+    @Test
+    void conUsuariosRespondiendo500Da503() {
+        guardarProducto();
+        usuarios.stubFor(post("/usuarios/validar").willReturn(serverError()));
+
+        ResponseEntity<String> respuesta = restTemplate.exchange("/products/{sku}", HttpMethod.DELETE,
+                conApiKey("clave-de-prueba"), String.class, SKU);
+
+        comprobarServicioNoDisponible(respuesta);
+        comprobarQueSigueActivo();
+    }
+
+    @Test
+    void conLaRutaDeUsuariosMalConfiguradaDa503() {
+        guardarProducto();
+        // Un 404 de Usuarios no dice nada de la key: es la ruta la que no existe.
+        usuarios.stubFor(post("/usuarios/validar").willReturn(notFound()));
+
+        ResponseEntity<String> respuesta = restTemplate.exchange("/products/{sku}", HttpMethod.DELETE,
+                conApiKey("clave-de-prueba"), String.class, SKU);
+
+        comprobarServicioNoDisponible(respuesta);
+        comprobarQueSigueActivo();
+    }
+
+    @Test
+    void conUsuariosLentoDa503SinEsperarlo() {
+        guardarProducto();
+        // Más que los 3 segundos de timeout del RestTemplate de la app.
+        Duration demora = Duration.ofSeconds(6);
+        usuarios.stubFor(post("/usuarios/validar").willReturn(ok().withFixedDelay((int) demora.toMillis())));
+
+        long inicio = System.nanoTime();
+        ResponseEntity<String> respuesta = restTemplate.exchange("/products/{sku}", HttpMethod.DELETE,
+                conApiKey("clave-de-prueba"), String.class, SKU);
+        Duration duracion = Duration.ofNanos(System.nanoTime() - inicio);
+
+        comprobarServicioNoDisponible(respuesta);
+        assertThat(duracion).isLessThan(demora);
+        comprobarQueSigueActivo();
+    }
+
+    private static void comprobarServicioNoDisponible(ResponseEntity<String> respuesta) {
+        comprobarError(respuesta, HttpStatus.SERVICE_UNAVAILABLE, "ServicioNoDisponible",
+                "No se pudo validar la X-API-Key en este momento");
+    }
+
+    private static void comprobarError(ResponseEntity<String> respuesta, HttpStatus status,
+                                       String errorEsperado, String mensajeEsperado) {
+        assertThat(respuesta.getStatusCode()).isEqualTo(status);
+        String error = JsonPath.read(respuesta.getBody(), "$.error");
+        String mensaje = JsonPath.read(respuesta.getBody(), "$.message");
+        assertThat(error).isEqualTo(errorEsperado);
+        assertThat(mensaje).isEqualTo(mensajeEsperado);
+    }
+
+    private void comprobarQueSigueActivo() {
         assertThat(productoRepository.findBySku(SKU)).get().extracting(Producto::getActivo).isEqualTo(true);
     }
 
