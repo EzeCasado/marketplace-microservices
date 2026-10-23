@@ -39,14 +39,15 @@ En el `.env` del catálogo, poné `DB_URL=jdbc:mysql://localhost:3307/catalog?se
 
 Queda escuchando en el puerto `8082`. Si Usuarios, Inventario o Reseñas no están corriendo, el catálogo funciona igual, pero `stock` y `ratingPromedio` vienen en `null`. En Docker vienen siempre en `null`: el Compose todavía no tiene esos servicios.
 
-La excepción son las escrituras (`POST`, `PATCH` y `DELETE`): validan la `X-API-Key` contra Usuarios y, sin una respuesta 200, la rechazan. Para escribir en local hace falta Usuarios corriendo o cualquier servicio que responda 200 en `USERS_VALIDATE_URL` (por ejemplo, un WireMock suelto). En Docker, por ahora, se rechazan siempre.
+La excepción son las escrituras (`POST`, `PATCH` y `DELETE`): validan la `X-API-Key` contra Usuarios y, sin una respuesta 2xx, la rechazan. Si Usuarios rechaza la key, responden 401; si la key no tiene permiso, 403, y si Usuarios no responde (está caído, tarda más de 3 segundos o contesta otro código), 503. Para escribir en local hace falta Usuarios corriendo o cualquier servicio que responda 200 en `USERS_VALIDATE_URL` (por ejemplo, un WireMock suelto). En Docker, por ahora, sale siempre 503: el Compose no tiene Usuarios.
 
 ## Tests
 
 Son tests de integración: levantan la aplicación completa en un puerto libre, contra un MySQL 8.4 en un contenedor (Testcontainers), con Usuarios, Inventario y Reseñas simulados con WireMock. No hace falta tener un MySQL propio ni los otros servicios corriendo.
 
 - `CatalogoDeProductosTpiApplicationTests`: la app arranca contra MySQL y `GET /categories` lista lo que hay en la base.
-- `ProductoPorSkuTests`: `/products/{sku}`. Un SKU que no existe, el detalle con Inventario caído o lento, la baja con y sin `X-API-Key`, y que ninguna key pasa sin Usuarios, ni siquiera `TEST-KEY`, la que aceptaba el TPI. Sirve de molde para los tests nuevos.
+- `ProductoPorSkuTests`: `/products/{sku}`. Un SKU que no existe, el detalle con Inventario caído o lento, la baja con y sin `X-API-Key`, y que ninguna key pasa sin Usuarios, ni siquiera `TEST-KEY`, la que aceptaba el TPI. También los códigos de la baja según lo que responde Usuarios: 401, 403 y 503 (caído, lento, con un 500 o con un 404). Sirve de molde para los tests nuevos.
+- `CodigosDeErrorTests`: los códigos de error del contrato que no dependen de Usuarios. JSON roto, parámetro inválido, ruta inexistente, 405, 406, 415, las reglas del 422 y del 400, y un 500 que no muestra detalles internos.
 - `TestDeIntegracion`: la clase base que arma la app, el MySQL y los WireMock. Los tests nuevos la extienden.
 
 Hace falta:
@@ -83,7 +84,7 @@ Así están hoy. Todavía no coinciden del todo con la consigna (ver más abajo)
 | `GET` | `/categories/{id}` | Detalle de una categoría | No |
 | `POST` | `/categories` | Crea una categoría | Sí |
 
-Los errores salen en JSON con la forma `{ "error": "...", "message": "..." }`.
+Los errores salen en JSON con la forma `{ "error": "...", "message": "..." }`. Los códigos y cuándo sale cada uno están en el contrato, [`docs/api/catalog.yaml`](../../docs/api/catalog.yaml).
 
 ## Diferencias conocidas con la consigna
 
@@ -92,4 +93,3 @@ Se revisaron leyendo el código y van a ir como issues. Las principales:
 - Las categorías usan un id numérico autogenerado; la consigna usa ids de texto (`cat-libros`).
 - `GET /products` filtra por `nombre` y devuelve un array; la consigna pide `q`, rango de precio, paginación y la forma `{items, page, pageSize, total}`.
 - El cliente de Inventario espera el campo `disponibilidad`; la consigna devuelve `disponible`.
-- El manejador de errores devuelve 500 para cualquier error de Spring que no maneje (JSON roto, ruta inexistente).

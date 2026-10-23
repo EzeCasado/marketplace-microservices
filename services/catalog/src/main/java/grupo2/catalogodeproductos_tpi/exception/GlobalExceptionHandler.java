@@ -96,6 +96,48 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /**
+     * Maneja la excepción ApiKeyInvalidaException (Error 401).
+     * La lanza ApiKeyAuthInterceptor cuando falta la X-API-Key o Usuarios la rechaza.
+     */
+    @ExceptionHandler(ApiKeyInvalidaException.class)
+    public ResponseEntity<Object> handleApiKeyInvalidaException(
+            ApiKeyInvalidaException ex, WebRequest request) {
+
+        Map<String, Object> body = cuerpo("NoAutorizado", ex.getMessage());
+
+        return createResponseEntity(body, new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
+
+    /**
+     * Maneja la excepción ApiKeySinPermisoException (Error 403).
+     * La lanza ApiKeyAuthInterceptor cuando la X-API-Key es válida pero no tiene permiso.
+     */
+    @ExceptionHandler(ApiKeySinPermisoException.class)
+    public ResponseEntity<Object> handleApiKeySinPermisoException(
+            ApiKeySinPermisoException ex, WebRequest request) {
+
+        Map<String, Object> body = cuerpo("SinPermiso", ex.getMessage());
+
+        return createResponseEntity(body, new HttpHeaders(), HttpStatus.FORBIDDEN, request);
+    }
+
+    /**
+     * Maneja la excepción UsuariosNoDisponibleException (Error 503).
+     * La lanza ApiKeyAuthInterceptor cuando Usuarios no respondió y no se pudo validar la key.
+     *
+     * No pasa por handleExceptionInternal: ahí cualquier 5xx se loguea como error
+     * con su stack trace, y la falla de Usuarios ya la loguea UsuarioClient.
+     */
+    @ExceptionHandler(UsuariosNoDisponibleException.class)
+    public ResponseEntity<Object> handleUsuariosNoDisponibleException(
+            UsuariosNoDisponibleException ex, WebRequest request) {
+
+        Map<String, Object> body = cuerpo("ServicioNoDisponible", ex.getMessage());
+
+        return createResponseEntity(body, new HttpHeaders(), HttpStatus.SERVICE_UNAVAILABLE, request);
+    }
+
+    /**
      * Maneja las excepciones de validación (Error 422 o 400).
      *
      * Esta excepción (MethodArgumentNotValidException) la lanza Spring
