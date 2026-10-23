@@ -1,6 +1,7 @@
 package grupo2.catalogodeproductos_tpi.service;
 
 import grupo2.catalogodeproductos_tpi.dto.CategoriaDTO;
+import grupo2.catalogodeproductos_tpi.dto.ListaCategoriasDTO;
 import grupo2.catalogodeproductos_tpi.exception.CategoriaDuplicadaException;
 import grupo2.catalogodeproductos_tpi.exception.ResourceNotFoundException;
 import grupo2.catalogodeproductos_tpi.mapper.CategoriaMapper;
@@ -8,6 +9,7 @@ import grupo2.catalogodeproductos_tpi.model.Categoria;
 import grupo2.catalogodeproductos_tpi.repository.CategoriaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,9 +59,11 @@ public class CategoriaService {
      * [Endpoint 2.6] GET /categories
      */
     @Transactional(readOnly = true)
-    public List<CategoriaDTO> obtenerTodas() {
-        List<Categoria> categorias = categoriaRepository.findAll();
-        return categoriaMapper.toCategoriaDTOList(categorias);
+    public ListaCategoriasDTO obtenerTodas() {
+        // El orden lo hace la base (ORDER BY nombre): compara según la intercalación
+        // de la columna, que no distingue mayúsculas ni tildes.
+        List<Categoria> categorias = categoriaRepository.findAll(Sort.by("nombre"));
+        return new ListaCategoriasDTO(categoriaMapper.toCategoriaDTOList(categorias));
     }
 
     /**
@@ -72,7 +76,8 @@ public class CategoriaService {
     }
 
     /**
-     * Método auxiliar para que ProductoService pueda encontrar una Categoría.
+     * Busca una categoría por su id. Si no está, lanza ResourceNotFoundException,
+     * que GlobalExceptionHandler devuelve como 404. Hoy la usa obtenerPorId.
      */
     @Transactional(readOnly = true)
     public Categoria findByIdOrThrow(String id) {

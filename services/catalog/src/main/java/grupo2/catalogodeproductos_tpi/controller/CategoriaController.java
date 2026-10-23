@@ -1,6 +1,7 @@
 package grupo2.catalogodeproductos_tpi.controller;
 
 import grupo2.catalogodeproductos_tpi.dto.CategoriaDTO;
+import grupo2.catalogodeproductos_tpi.dto.ListaCategoriasDTO;
 import grupo2.catalogodeproductos_tpi.service.CategoriaService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
@@ -9,8 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * Controlador REST para los endpoints de Categorías.
@@ -37,13 +36,14 @@ public class CategoriaController {
      *
      * @GetMapping Define que este método maneja peticiones GET
      * a la URL base ("/categories").
-     * @return Un ResponseEntity que contiene la lista de CategoriaDTO
-     * y un código de estado 200 (OK).
+     * @return Un ResponseEntity con un código de estado 200 (OK) y la lista
+     * dentro de items: { "items": [{ "id": "cat-libros", "nombre": "Libros" }] },
+     * ordenada por nombre y sin paginar. Si no hay categorías, items viene vacío.
      */
     @GetMapping
-    public ResponseEntity<List<CategoriaDTO>> getAllCategories() {
+    public ResponseEntity<ListaCategoriasDTO> getAllCategories() {
         // 1. Llama al servicio para obtener los datos.
-        List<CategoriaDTO> categorias = categoriaService.obtenerTodas();
+        ListaCategoriasDTO categorias = categoriaService.obtenerTodas();
         
         // 2. Devuelve los datos con el código 200 OK.
         return ResponseEntity.ok(categorias);

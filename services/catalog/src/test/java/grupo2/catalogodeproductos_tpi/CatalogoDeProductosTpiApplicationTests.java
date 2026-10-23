@@ -41,9 +41,7 @@ class CatalogoDeProductosTpiApplicationTests extends TestDeIntegracion {
         ResponseEntity<String> respuesta = restTemplate.getForEntity("/categories", String.class);
 
         assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.OK);
-        // "$..nombre" busca el campo en cualquier nivel: sirve con el array de hoy
-        // y con el { "items": [...] } que pide el contrato.
-        List<String> nombres = JsonPath.read(respuesta.getBody(), "$..nombre");
+        List<String> nombres = JsonPath.read(respuesta.getBody(), "$.items[*].nombre");
         assertThat(nombres).contains("Libros");
     }
 }
