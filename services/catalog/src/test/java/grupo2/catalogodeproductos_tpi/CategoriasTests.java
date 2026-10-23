@@ -17,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
@@ -26,8 +27,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Las categorías con id de texto (docs/api/catalog.yaml: CategoriaId, Categoria,
- * /categories y /categories/{categoryId}): el alta con el id que manda el cliente,
- * el 409 por id o por nombre repetido, la validación del id y la lectura por id.
+ * ListaCategorias, /categories y /categories/{categoryId}): el alta con el id que
+ * manda el cliente, el 409 por id o por nombre repetido, la validación del id, la
+ * lectura por id y la lista dentro de `items`, ordenada por nombre.
  *
  * Las altas pasan por el interceptor: cada POST va con X-API-Key y con Usuarios
  * respondiendo 200 en /usuarios/validar.
@@ -46,7 +48,8 @@ class CategoriasTests extends TestDeIntegracion {
     // Los ids válidos que crea o intenta crear algún test de esta clase. Los inválidos no van:
     // nunca llegan a la base, y la intercalación de MySQL no distingue mayúsculas, así que
     // "Cat-Libros" encontraría la fila de "cat-libros" y el borrado fallaría.
-    private static final List<String> IDS_DE_ESTA_CLASE = List.of("cat-libros", "cat-otra", "abc", ID_DE_50);
+    private static final List<String> IDS_DE_ESTA_CLASE = List.of("cat-libros", "cat-otra", "cat-musica",
+            "cat-zapatos", "abc", ID_DE_50);
 
     @Autowired
     private CategoriaRepository categoriaRepository;
@@ -175,6 +178,41 @@ class CategoriasTests extends TestDeIntegracion {
         assertThat(respuesta.getStatusCode().value()).isEqualTo(201);
         comprobarCategoria(respuesta.getBody(), id, "Libros");
         assertThat(categoriaRepository.existsById(id)).isTrue();
+    }
+
+    @Test
+    void sinCategoriasLaListaDevuelveItemsVacio() {
+        // Si otro test dejó categorías, que falle acá con un mensaje claro y no con una lista rara.
+        assertThat(categoriaRepository.count()).as("categorías en la base antes de pedir la lista").isZero();
+
+        ResponseEntity<String> respuesta = restTemplate.getForEntity("/categories", String.class);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(200);
+        Map<String, Object> body = JsonPath.read(respuesta.getBody(), "$");
+        List<Object> items = JsonPath.read(respuesta.getBody(), "$.items");
+        assertThat(body).containsOnlyKeys("items");
+        assertThat(items).isEmpty();
+    }
+
+    @Test
+    void laListaVieneDentroDeItemsOrdenadaPorNombre() {
+        // Por id saldrían Libros, Música, Calzado, y por orden de alta, Música, Libros, Calzado:
+        // solo el orden por nombre da Calzado, Libros, Música.
+        categoriaRepository.save(categoria("cat-musica", "Música"));
+        categoriaRepository.save(categoria("cat-libros", "Libros"));
+        categoriaRepository.save(categoria("cat-zapatos", "Calzado"));
+
+        ResponseEntity<String> respuesta = restTemplate.getForEntity("/categories", String.class);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(200);
+        Map<String, Object> body = JsonPath.read(respuesta.getBody(), "$");
+        List<String> nombres = JsonPath.read(respuesta.getBody(), "$.items[*].nombre");
+        List<Map<String, Object>> items = JsonPath.read(respuesta.getBody(), "$.items");
+        assertThat(body).containsOnlyKeys("items");
+        assertThat(nombres).containsExactly("Calzado", "Libros", "Música");
+        // El contrato: cada categoría tiene solo `id` y `nombre`, sin `descripcion`.
+        assertThat(items).allSatisfy(item -> assertThat(item).containsOnlyKeys("id", "nombre"));
+        assertThat(items.get(0)).containsEntry("id", "cat-zapatos").containsEntry("nombre", "Calzado");
     }
 
     @Test

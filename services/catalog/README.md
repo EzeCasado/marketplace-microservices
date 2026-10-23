@@ -49,7 +49,7 @@ Son tests de integración: levantan la aplicación completa en un puerto libre, 
 
 - `CatalogoDeProductosTpiApplicationTests`: la app arranca contra MySQL y `GET /categories` lista lo que hay en la base.
 - `ProductoPorSkuTests`: `/products/{sku}`. Un SKU que no existe, el detalle con Inventario caído o lento, la baja con y sin `X-API-Key`, y que ninguna key pasa sin Usuarios, ni siquiera `TEST-KEY`, la que aceptaba el TPI. También los códigos de la baja según lo que responde Usuarios: 401, 403 y 503 (caído, lento, con un 500 o con un 404). Sirve de molde para los tests nuevos.
-- `CategoriasTests`: las categorías con id de texto. El alta con el id que manda el cliente, el 409 por un id o un nombre repetido (sin pisar la categoría que estaba), la validación del id y `GET /categories/{categoryId}` con un id que no existe o mal formado.
+- `CategoriasTests`: las categorías con id de texto. El alta con el id que manda el cliente, el 409 por un id o un nombre repetido (sin pisar la categoría que estaba), la validación del id, `GET /categories/{categoryId}` con un id que no existe o mal formado, y `GET /categories` con la lista vacía y ordenada por nombre.
 - `AltaDeProductoTests`: el `categoriaId` de texto en los productos. El alta con una categoría que existe, el 400 con una que no existe o mal formada, el 422 si falta, el 409 del SKU repetido antes que la categoría y el filtro `categoriaId` de `GET /products`.
 - `CodigosDeErrorTests`: los códigos de error del contrato que no dependen de Usuarios. JSON roto, parámetro inválido, ruta inexistente, 405, 406, 415, las reglas del 422 y del 400, y un 500 que no muestra detalles internos.
 - `TestDeIntegracion`: la clase base que arma la app, el MySQL y los WireMock. Los tests nuevos la extienden.
@@ -84,7 +84,7 @@ Así están hoy. Todavía no coinciden del todo con la consigna (ver más abajo)
 | `POST` | `/products` | Crea un producto | Sí |
 | `PATCH` | `/products/{sku}` | Modifica los campos enviados | Sí |
 | `DELETE` | `/products/{sku}` | Baja lógica | Sí |
-| `GET` | `/categories` | Lista las categorías | No |
+| `GET` | `/categories` | Lista las categorías dentro de `items`, ordenadas por nombre | No |
 | `GET` | `/categories/{categoryId}` | Detalle de una categoría | No |
 | `POST` | `/categories` | Crea una categoría | Sí |
 

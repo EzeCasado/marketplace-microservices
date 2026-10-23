@@ -277,7 +277,7 @@ paths:
       tags: [Categorías]
       operationId: listarCategorias
       summary: Lista las categorías
-      description: Devuelve todas las categorías, sin paginar.
+      description: Devuelve todas las categorías, ordenadas por `nombre` y sin paginar.
       security: []
       responses:
         '200':
