@@ -17,11 +17,18 @@ import org.springframework.stereotype.Repository;
  * @Repository le dice a Spring que esta es una interfaz de repositorio
  * y que debe crear un "bean" (un objeto manejado por Spring) a partir de ella.
  *
- * JpaRepository<Categoria, Long>:
+ * JpaRepository<Categoria, String>:
  * 1. 'Categoria': Es la clase de la Entidad que va a manejar.
- * 2. 'Long': Es el tipo de dato de la Clave Primaria (@Id) de esa entidad.
+ * 2. 'String': Es el tipo de dato de la Clave Primaria (@Id) de esa entidad
+ *    (un id de texto, como "cat-libros", que elige quien crea la categoría).
  */
 @Repository
-public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
-    // ¡No necesitamos nada más! Spring Data JPA se encarga del resto.
+public interface CategoriaRepository extends JpaRepository<Categoria, String> {
+
+    /**
+     * Verifica si ya hay una categoría con ese nombre.
+     * La base compara sin distinguir mayúsculas ni tildes (su intercalación),
+     * así que "libros" coincide con "Libros".
+     */
+    boolean existsByNombre(String nombre);
 }

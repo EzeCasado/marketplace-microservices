@@ -57,8 +57,9 @@ class CodigosDeErrorTests extends TestDeIntegracion {
     }
 
     @Test
-    void unIdQueNoEsNumeroDa400() {
-        ResponseEntity<String> respuesta = restTemplate.getForEntity("/categories/{id}", String.class, "abc");
+    void unIdMalFormadoDa400() {
+        // "abc" ya es un id válido (daría 404): el 400 sale de un id fuera del patrón.
+        ResponseEntity<String> respuesta = restTemplate.getForEntity("/categories/{id}", String.class, "Cat_Libros");
 
         mensajeDe(respuesta, 400, "PeticionInvalida");
     }
@@ -146,7 +147,7 @@ class CodigosDeErrorTests extends TestDeIntegracion {
         long categoriasAntes = categoriaRepository.count();
 
         ResponseEntity<String> respuesta = postConKey("/categories", MediaType.APPLICATION_JSON,
-                "{\"nombre\": \"ab\"}");
+                "{\"id\": \"cat-libros\", \"nombre\": \"ab\"}");
 
         String mensaje = mensajeDe(respuesta, 400, "PeticionInvalida");
         // El formato es "campo: mensaje", sin prefijo.
@@ -161,7 +162,7 @@ class CodigosDeErrorTests extends TestDeIntegracion {
 
         // No falta ningún campo: el sku es muy corto (@Size) y el precio es negativo (@Positive).
         ResponseEntity<String> respuesta = postConKey("/products", MediaType.APPLICATION_JSON,
-                "{\"sku\": \"ab\", \"nombre\": \"abc\", \"precio\": -5, \"peso\": 1, \"categoriaId\": 1}");
+                "{\"sku\": \"ab\", \"nombre\": \"abc\", \"precio\": -5, \"peso\": 1, \"categoriaId\": \"cat-libros\"}");
 
         String mensaje = mensajeDe(respuesta, 400, "PeticionInvalida");
         // "campo: mensaje" por cada error, separados por coma y en orden alfabético de campo.

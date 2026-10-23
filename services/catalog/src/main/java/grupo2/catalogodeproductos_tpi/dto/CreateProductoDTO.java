@@ -24,7 +24,10 @@ public record CreateProductoDTO(
     @Positive(message = "El peso debe ser mayor a 0 kg")
     BigDecimal peso,
 
+    // Mismo patrón y mismos mensajes que el id de CategoriaDTO (CategoriaId en docs/api/catalog.yaml)
     @NotNull(message = "El ID de la categoría no puede ser nulo")
-    Long categoriaId
+    @Size(min = 3, max = 50, message = "El id debe tener entre 3 y 50 caracteres")
+    @Pattern(regexp = CategoriaDTO.PATRON_ID, message = "El id solo puede tener minúsculas, números y guiones entre medio")
+    String categoriaId
 ) {
 }

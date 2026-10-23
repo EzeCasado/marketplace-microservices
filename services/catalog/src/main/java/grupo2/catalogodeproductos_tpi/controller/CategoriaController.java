@@ -3,6 +3,8 @@ package grupo2.catalogodeproductos_tpi.controller;
 import grupo2.catalogodeproductos_tpi.dto.CategoriaDTO;
 import grupo2.catalogodeproductos_tpi.service.CategoriaService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -55,12 +57,21 @@ public class CategoriaController {
      * "/categories/ALGO", donde "ALGO" es una variable.
      *
      * @param categoryId El valor que viene en la URL, capturado por @PathVariable.
+     * @Size y @Pattern validan que tenga la forma de un id de categoría (ej. "cat-libros").
+     * Si no la tiene, Spring lanza HandlerMethodValidationException y
+     * GlobalExceptionHandler devuelve 400. Las restricciones van solo acá: en un
+     * método con @Valid @RequestBody (como createCategory) cambiarían cómo salen
+     * los errores del body.
      * @return Un ResponseEntity con la CategoriaDTO encontrada (200 OK).
      * Si no se encuentra, CategoriaService lanzará ResourceNotFoundException,
      * que será manejada por GlobalExceptionHandler (devolviendo 404).
      */
     @GetMapping("/{categoryId}")
-    public ResponseEntity<CategoriaDTO> getCategoryById(@PathVariable Long categoryId) {
+    public ResponseEntity<CategoriaDTO> getCategoryById(
+            @PathVariable
+            @Size(min = 3, max = 50)
+            @Pattern(regexp = CategoriaDTO.PATRON_ID)
+            String categoryId) {
         CategoriaDTO categoria = categoriaService.obtenerPorId(categoryId);
         return ResponseEntity.ok(categoria);
     }
@@ -76,7 +87,9 @@ public class CategoriaController {
      *
      * @Valid Activa las validaciones definidas en CategoriaDTO
      * (ej. @NotBlank). Si fallan, GlobalExceptionHandler
-     * devolverá un error 400 (Bad Request).
+     * devolverá un error 422 (falta algún campo) o 400 (valor inválido).
+     * Si el id o el nombre ya existen, CategoriaService lanzará
+     * CategoriaDuplicadaException (409).
      *
      * @return Un ResponseEntity con la CategoriaDTO recién creada
      * y un código de estado 201 (Created).

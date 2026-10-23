@@ -14,6 +14,8 @@ Java 21, Spring Boot 4.1 (Web MVC, Data JPA, Validation), MySQL, MapStruct y Lom
 
 El catálogo y su MySQL se levantan juntos con el Compose de la raíz. Los pasos están en el [README de la raíz](../../README.md#cómo-levantarlo).
 
+Si la base del Compose se creó antes de que las categorías pasaran a ids de texto, hay que borrarla con `docker compose down -v` antes de levantarlo: el id de las categorías cambió de tipo y la base no se actualiza sola.
+
 En el CI, el job `Catalog (Docker Compose)` levanta lo mismo y le pega a `GET /categories` en cada pull request que toca `services/catalog` o el Compose.
 
 ### Con Maven
@@ -47,6 +49,8 @@ Son tests de integración: levantan la aplicación completa en un puerto libre, 
 
 - `CatalogoDeProductosTpiApplicationTests`: la app arranca contra MySQL y `GET /categories` lista lo que hay en la base.
 - `ProductoPorSkuTests`: `/products/{sku}`. Un SKU que no existe, el detalle con Inventario caído o lento, la baja con y sin `X-API-Key`, y que ninguna key pasa sin Usuarios, ni siquiera `TEST-KEY`, la que aceptaba el TPI. También los códigos de la baja según lo que responde Usuarios: 401, 403 y 503 (caído, lento, con un 500 o con un 404). Sirve de molde para los tests nuevos.
+- `CategoriasTests`: las categorías con id de texto. El alta con el id que manda el cliente, el 409 por un id o un nombre repetido (sin pisar la categoría que estaba), la validación del id y `GET /categories/{categoryId}` con un id que no existe o mal formado.
+- `AltaDeProductoTests`: el `categoriaId` de texto en los productos. El alta con una categoría que existe, el 400 con una que no existe o mal formada, el 422 si falta, el 409 del SKU repetido antes que la categoría y el filtro `categoriaId` de `GET /products`.
 - `CodigosDeErrorTests`: los códigos de error del contrato que no dependen de Usuarios. JSON roto, parámetro inválido, ruta inexistente, 405, 406, 415, las reglas del 422 y del 400, y un 500 que no muestra detalles internos.
 - `TestDeIntegracion`: la clase base que arma la app, el MySQL y los WireMock. Los tests nuevos la extienden.
 
@@ -81,8 +85,10 @@ Así están hoy. Todavía no coinciden del todo con la consigna (ver más abajo)
 | `PATCH` | `/products/{sku}` | Modifica los campos enviados | Sí |
 | `DELETE` | `/products/{sku}` | Baja lógica | Sí |
 | `GET` | `/categories` | Lista las categorías | No |
-| `GET` | `/categories/{id}` | Detalle de una categoría | No |
+| `GET` | `/categories/{categoryId}` | Detalle de una categoría | No |
 | `POST` | `/categories` | Crea una categoría | Sí |
+
+El id de una categoría lo elige quien la crea: minúsculas, números y guiones entre medio, de 3 a 50 caracteres (por ejemplo, `cat-libros`). Un id o un nombre que ya existen dan 409.
 
 Los errores salen en JSON con la forma `{ "error": "...", "message": "..." }`. Los códigos y cuándo sale cada uno están en el contrato, [`docs/api/catalog.yaml`](../../docs/api/catalog.yaml).
 
@@ -90,6 +96,5 @@ Los errores salen en JSON con la forma `{ "error": "...", "message": "..." }`. L
 
 Se revisaron leyendo el código y van a ir como issues. Las principales:
 
-- Las categorías usan un id numérico autogenerado; la consigna usa ids de texto (`cat-libros`).
 - `GET /products` filtra por `nombre` y devuelve un array; la consigna pide `q`, rango de precio, paginación y la forma `{items, page, pageSize, total}`.
 - El cliente de Inventario espera el campo `disponibilidad`; la consigna devuelve `disponible`.

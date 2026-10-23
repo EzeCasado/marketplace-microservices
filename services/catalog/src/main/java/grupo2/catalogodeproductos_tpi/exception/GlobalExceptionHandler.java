@@ -17,6 +17,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
@@ -25,6 +26,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -93,6 +95,32 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
         // 2. Devolvemos el JSON con el código HTTP 409 (CONFLICT)
         return createResponseEntity(body, new HttpHeaders(), HttpStatus.CONFLICT, request);
+    }
+
+    /**
+     * Maneja la excepción CategoriaDuplicadaException (Error 409).
+     * Atrapa la excepción lanzada por CategoriaService.
+     */
+    @ExceptionHandler(CategoriaDuplicadaException.class)
+    public ResponseEntity<Object> handleCategoriaDuplicadaException(
+            CategoriaDuplicadaException ex, WebRequest request) {
+
+        Map<String, Object> body = cuerpo("Conflicto", ex.getMessage());
+
+        return createResponseEntity(body, new HttpHeaders(), HttpStatus.CONFLICT, request);
+    }
+
+    /**
+     * Maneja la excepción CategoriaInexistenteException (Error 400).
+     * Atrapa la excepción lanzada por ProductoService.
+     */
+    @ExceptionHandler(CategoriaInexistenteException.class)
+    public ResponseEntity<Object> handleCategoriaInexistenteException(
+            CategoriaInexistenteException ex, WebRequest request) {
+
+        Map<String, Object> body = cuerpo("PeticionInvalida", ex.getMessage());
+
+        return createResponseEntity(body, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
 
     /**
@@ -300,7 +328,24 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             case HttpMessageNotReadableException e -> "El body no es un JSON válido";
             case MethodArgumentTypeMismatchException e -> "El parámetro " + e.getName() + " tiene un valor inválido";
             case MissingServletRequestParameterException e -> "Falta el parámetro " + e.getParameterName();
+            case HandlerMethodValidationException e -> mensajeDeValidacion(e);
             default -> status.is5xxServerError() ? MENSAJE_ERROR_INESPERADO : "La petición no es válida";
         };
+    }
+
+    /**
+     * El "message" de un parámetro de la ruta que no cumple sus restricciones
+     * (ej. un categoryId con mayúsculas): nombra el parámetro, no el error de validación.
+     */
+    private static String mensajeDeValidacion(HandlerMethodValidationException ex) {
+        String nombres = ex.getParameterValidationResults().stream()
+                .map(resultado -> resultado.getMethodParameter().getParameterName())
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.joining(", "));
+
+        return nombres.isEmpty()
+                ? "La petición no es válida"
+                : "El parámetro " + nombres + " tiene un valor inválido";
     }
 }
