@@ -18,8 +18,7 @@ public interface ProductoMapper {
     @Mapping(target = "categoria", ignore = true)
     // IMPORTANTE: Forzamos que el producto nazca como 'activo = true'
     @Mapping(target = "activo", constant = "true") 
-    // 'peso' se mapea automáticamente porque se llama igual en ambos lados
-    @Mapping(target = "dimensiones", ignore = true) // Ignoramos dimensiones si no está en el DTO aún
+    // 'tipo', 'peso' y 'volumen' se mapean solos porque se llaman igual en ambos lados
     Producto toProducto(CreateProductoDTO createDTO);
 
 

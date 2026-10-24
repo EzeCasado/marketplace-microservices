@@ -32,12 +32,19 @@ public class Producto {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal precio;
 
-    // --- NUEVO: Peso en Kilogramos ---
-    @Column(nullable = false, precision = 10, scale = 3)
+    // FISICO o DIGITAL. Se guarda el nombre y no la posición: si alguien reordena el enum,
+    // un número pasaría a significar otra cosa.
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TipoProducto tipo;
+
+    // Peso en kilogramos. Obligatorio en un FISICO y ausente en un DIGITAL (lo valida el alta), por eso acepta null.
+    @Column(precision = 10, scale = 3)
     private BigDecimal peso;
 
-    @Column(length = 50)
-    private String dimensiones;
+    // Volumen en metros cúbicos, con las mismas reglas que el peso. Seis decimales llegan al centímetro cúbico.
+    @Column(precision = 10, scale = 6)
+    private BigDecimal volumen;
 
     // --- NUEVO: Estado para Baja Lógica ---
     // true = Visible / false = Dado de baja

@@ -160,9 +160,10 @@ class CodigosDeErrorTests extends TestDeIntegracion {
         usuariosAceptaLaKey();
         long productosAntes = productoRepository.count();
 
-        // No falta ningún campo: el sku es muy corto (@Size) y el precio es negativo (@Positive).
+        // No falta ningún campo (es un FISICO completo): el sku es muy corto (@Size) y el precio es negativo (@Positive).
         ResponseEntity<String> respuesta = postConKey("/products", MediaType.APPLICATION_JSON,
-                "{\"sku\": \"ab\", \"nombre\": \"abc\", \"precio\": -5, \"peso\": 1, \"categoriaId\": \"cat-libros\"}");
+                "{\"sku\": \"ab\", \"nombre\": \"abc\", \"tipo\": \"FISICO\", \"precio\": -5, \"peso\": 1, "
+                        + "\"volumen\": 0.001, \"categoriaId\": \"cat-libros\"}");
 
         String mensaje = mensajeDe(respuesta, 400, "PeticionInvalida");
         // "campo: mensaje" por cada error, separados por coma y en orden alfabético de campo.
@@ -177,15 +178,14 @@ class CodigosDeErrorTests extends TestDeIntegracion {
         usuariosAceptaLaKey();
         long productosAntes = productoRepository.count();
 
-        // Faltan nombre, peso y categoriaId, y el precio es inválido: gana el 422 con los que faltan.
+        // Faltan nombre, tipo y categoriaId, y el precio es inválido: gana el 422 con los que faltan.
+        // Sin tipo no corren las reglas de peso y volumen, así que esos dos no se nombran.
         ResponseEntity<String> respuesta = postConKey("/products", MediaType.APPLICATION_JSON,
                 "{\"sku\": \"BK-001\", \"precio\": -5}");
 
         String mensaje = mensajeDe(respuesta, 422, "FaltanCamposObligatorios");
         // Los campos van en orden alfabético, para que el texto no cambie entre corridas.
-        assertThat(mensaje).startsWith("Faltan campos obligatorios: ")
-                .containsSubsequence("categoriaId", "nombre", "peso")
-                .doesNotContain("precio");
+        assertThat(mensaje).isEqualTo("Faltan campos obligatorios: categoriaId, nombre, tipo");
         assertThat(productoRepository.count()).isEqualTo(productosAntes);
     }
 

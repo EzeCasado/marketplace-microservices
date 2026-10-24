@@ -3,6 +3,7 @@ package grupo2.catalogodeproductos_tpi;
 import com.jayway.jsonpath.JsonPath;
 import grupo2.catalogodeproductos_tpi.model.Categoria;
 import grupo2.catalogodeproductos_tpi.model.Producto;
+import grupo2.catalogodeproductos_tpi.model.TipoProducto;
 import grupo2.catalogodeproductos_tpi.repository.CategoriaRepository;
 import grupo2.catalogodeproductos_tpi.repository.ProductoRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -109,7 +110,7 @@ class AltaDeProductoTests extends TestDeIntegracion {
         long productosAntes = productoRepository.count();
 
         ResponseEntity<String> respuesta = postConKey("/products", """
-                {"sku": "BK-001", "nombre": "Libro POO", "precio": 15000, "peso": 0.45}
+                {"sku": "BK-001", "nombre": "Libro POO", "tipo": "FISICO", "precio": 15000, "peso": 0.45, "volumen": 0.0012}
                 """);
 
         String mensaje = mensajeDe(respuesta, 422, "FaltanCamposObligatorios");
@@ -159,10 +160,10 @@ class AltaDeProductoTests extends TestDeIntegracion {
         assertThat(productos).isEmpty();
     }
 
-    /** El alta todavía pide `peso`: el #15 cambia estos campos. */
+    /** Un alta completa de un producto FISICO: con peso y volumen. */
     private static String altaDeLibro(String categoriaId) {
         return """
-                {"sku": "BK-001", "nombre": "Libro POO", "precio": 15000, "peso": 0.45, "categoriaId": "%s"}
+                {"sku": "BK-001", "nombre": "Libro POO", "tipo": "FISICO", "precio": 15000, "peso": 0.45, "volumen": 0.0012, "categoriaId": "%s"}
                 """.formatted(categoriaId);
     }
 
@@ -177,8 +178,10 @@ class AltaDeProductoTests extends TestDeIntegracion {
         Producto producto = new Producto();
         producto.setSku(sku);
         producto.setNombre(nombre);
+        producto.setTipo(TipoProducto.FISICO);
         producto.setPrecio(new BigDecimal("15000"));
         producto.setPeso(new BigDecimal("0.45"));
+        producto.setVolumen(new BigDecimal("0.0012"));
         producto.setCategoria(categoria);
         productoRepository.save(producto);
     }

@@ -1,5 +1,7 @@
 package grupo2.catalogodeproductos_tpi.exception;
 
+import grupo2.catalogodeproductos_tpi.model.TipoProducto;
+import grupo2.catalogodeproductos_tpi.validation.FisicoConPesoYVolumen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -22,6 +24,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import tools.jackson.databind.exc.MismatchedInputException;
+import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -61,8 +65,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     /**
      * Códigos de las anotaciones de validación que significan "el campo falta"
      * (FieldError.getCode() devuelve el nombre de la anotación).
+     * FisicoConPesoYVolumen marca el peso o el volumen que falta en un producto FISICO.
      */
-    private static final Set<String> CODIGOS_DE_CAMPO_FALTANTE = Set.of("NotNull", "NotBlank", "NotEmpty");
+    private static final Set<String> CODIGOS_DE_CAMPO_FALTANTE = Set.of(
+            "NotNull", "NotBlank", "NotEmpty", FisicoConPesoYVolumen.class.getSimpleName());
 
     /**
      * Maneja la excepción ResourceNotFoundException (Error 404).
@@ -177,7 +183,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      * excepción tendría dos manejadores.
      *
      * Reglas del contrato:
-     * - Si falta algún campo (@NotNull, @NotBlank o @NotEmpty), 422 con la
+     * - Si falta algún campo (@NotNull, @NotBlank, @NotEmpty o @FisicoConPesoYVolumen,
+     *   que marca el peso o el volumen que falta en un producto FISICO), 422 con la
      *   lista de los que faltan. Los valores inválidos no se mencionan: se ven
      *   cuando el cliente completa lo que falta.
      * - Si no falta ninguno, 400 con "campo: mensaje" por cada error.
@@ -325,11 +332,28 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             case HttpMediaTypeNotAcceptableException e -> "Solo se puede responder en application/json";
             case NoResourceFoundException e -> "La ruta no existe";
             case NoHandlerFoundException e -> "La ruta no existe";
-            case HttpMessageNotReadableException e -> "El body no es un JSON válido";
+            case HttpMessageNotReadableException e -> mensajeDeBodyIlegible(e);
             case MethodArgumentTypeMismatchException e -> "El parámetro " + e.getName() + " tiene un valor inválido";
             case MissingServletRequestParameterException e -> "Falta el parámetro " + e.getParameterName();
             case HandlerMethodValidationException e -> mensajeDeValidacion(e);
             default -> status.is5xxServerError() ? MENSAJE_ERROR_INESPERADO : "La petición no es válida";
+        };
+    }
+
+    /**
+     * El "message" de un body que Spring no pudo leer. Mira la causa, que es una excepción de Jackson:
+     * un campo que el DTO no tiene (el body es cerrado) y un tipo que no es FISICO ni DIGITAL tienen
+     * su mensaje. Se arman con el nombre del campo, no con el texto de la excepción.
+     * Cualquier otra causa es un JSON roto o un valor que no se puede convertir.
+     *
+     * Con varios campos de más, Jackson avisa solo del primero. Un tipo inválido se detecta
+     * antes que un campo de más, aunque venga después en el body.
+     */
+    private static String mensajeDeBodyIlegible(HttpMessageNotReadableException ex) {
+        return switch (ex.getCause()) {
+            case UnrecognizedPropertyException e -> "El campo " + e.getPropertyName() + " no se acepta en esta operación";
+            case MismatchedInputException e when e.getTargetType() == TipoProducto.class -> "tipo: tiene que ser FISICO o DIGITAL";
+            case null, default -> "El body no es un JSON válido";
         };
     }
 

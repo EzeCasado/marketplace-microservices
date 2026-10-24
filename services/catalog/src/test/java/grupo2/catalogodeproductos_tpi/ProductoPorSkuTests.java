@@ -4,6 +4,7 @@ import com.github.tomakehurst.wiremock.http.Fault;
 import com.jayway.jsonpath.JsonPath;
 import grupo2.catalogodeproductos_tpi.model.Categoria;
 import grupo2.catalogodeproductos_tpi.model.Producto;
+import grupo2.catalogodeproductos_tpi.model.TipoProducto;
 import grupo2.catalogodeproductos_tpi.repository.CategoriaRepository;
 import grupo2.catalogodeproductos_tpi.repository.ProductoRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -258,8 +259,10 @@ class ProductoPorSkuTests extends TestDeIntegracion {
         producto = new Producto();
         producto.setSku(SKU);
         producto.setNombre("Libro POO");
+        producto.setTipo(TipoProducto.FISICO);
         producto.setPrecio(new BigDecimal("15000"));
         producto.setPeso(new BigDecimal("0.45"));
+        producto.setVolumen(new BigDecimal("0.0012"));
         producto.setCategoria(categoria);
         producto = productoRepository.save(producto);
     }
