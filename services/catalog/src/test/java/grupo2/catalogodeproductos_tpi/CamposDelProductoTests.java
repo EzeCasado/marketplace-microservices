@@ -21,6 +21,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
@@ -30,7 +31,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Los campos del alta de un producto (docs/api/catalog.yaml: Tipo, Peso, Volumen,
  * PesoYVolumenSegunTipo, ProductoAlta y POST /products): el `tipo`, el `peso` y el
- * `volumen` según el tipo, y el 400 para un campo que el body no admite.
+ * `volumen` según el tipo, el 400 para un campo que el body no admite y la respuesta
+ * del alta, con la forma de Producto.
  *
  * Las reglas de peso y volumen dependen del tipo. Un FISICO sin `peso` o sin
  * `volumen` da 422 junto con los demás campos que falten; un DIGITAL con alguno de
@@ -157,6 +159,24 @@ class CamposDelProductoTests extends TestDeIntegracion {
         Producto guardado = productoRepository.findBySku(SKU_LIBRO).orElseThrow();
         assertThat(guardado.getPeso()).isEqualTo(new BigDecimal("9999999.999"));
         assertThat(guardado.getVolumen()).isEqualTo(new BigDecimal("9999.999999"));
+    }
+
+    @Test
+    void laRespuestaDelAltaTraeCantidadEnNullYNoTraeActivoNiFechaDeCreacion() {
+        usuariosAceptaLaKey();
+        guardarCategoria();
+
+        ResponseEntity<String> respuesta = postConKey("/products",
+                altaDe(SKU_LIBRO, TIPO_FISICO, peso("0.45"), volumen("0.0012")));
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(201);
+        Map<String, Object> creado = JsonPath.read(respuesta.getBody(), "$");
+        // El stock inicial se carga en Inventario: hasta que lo tenga, `cantidad` viene en null, pero viene.
+        assertThat(creado)
+                .containsEntry("cantidad", null)
+                .containsEntry("tipo", "FISICO")
+                .containsKeys("peso", "volumen")
+                .doesNotContainKeys("activo", "fechaCreacion", "stock");
     }
 
     // ---------------------------------------------------------------------------------

@@ -77,10 +77,6 @@ public class ProductoService {
 
          Producto guardado = productoRepository.save(producto);
          
-         if (updateDTO.stock() != null) {
-             System.out.println("TODO: Llamar a API Inventario para actualizar stock de " + sku + " a " + updateDTO.stock());
-         }
-
          Optional<StockDTO> stockOpt = inventarioClient.getStockPorSku(sku);
          Optional<RatingDTO> ratingOpt = resenasClient.getRatingDTO(sku);
 
