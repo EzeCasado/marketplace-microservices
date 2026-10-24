@@ -39,15 +39,15 @@ En el `.env` del catálogo, poné `DB_URL=jdbc:mysql://localhost:3307/catalog?se
 
 ### Con las dos formas
 
-Queda escuchando en el puerto `8082`. Si Usuarios, Inventario o Reseñas no están corriendo, el catálogo funciona igual, pero `stock` y `ratingPromedio` vienen en `null`. En Docker vienen siempre en `null`: el Compose todavía no tiene esos servicios.
+Queda escuchando en el puerto `8082`. Si Usuarios, Inventario o Reseñas no están corriendo, el catálogo funciona igual, pero `cantidad` y `ratingPromedio` vienen en `null`. En Docker vienen siempre en `null`: el Compose todavía no tiene esos servicios.
 
 La excepción son las escrituras (`POST`, `PATCH` y `DELETE`): validan la `X-API-Key` contra Usuarios y, sin una respuesta 2xx, la rechazan. Si Usuarios rechaza la key, responden 401; si la key no tiene permiso, 403, y si Usuarios no responde (está caído, tarda más de 3 segundos o contesta otro código), 503. Para escribir en local hace falta Usuarios corriendo o cualquier servicio que responda 200 en `USERS_VALIDATE_URL` (por ejemplo, un WireMock suelto). En Docker, por ahora, sale siempre 503: el Compose no tiene Usuarios.
 
 ## Migraciones de la base
 
-El esquema lo arma Flyway con las migraciones de `src/main/resources/db/migration`, que corren solas al arrancar la app, en orden y una sola vez cada una. La `V1` es el esquema que generaba Hibernate antes de Flyway.
+El esquema lo arma Flyway con las migraciones de `src/main/resources/db/migration`, que corren solas al arrancar la app, en orden y una sola vez cada una. La `V1` es el esquema que generaba Hibernate antes de Flyway. La `V2` suma `tipo` y `volumen` a los productos, deja `peso` opcional y saca `dimensiones`.
 
-- Un cambio de esquema es un archivo nuevo, `V<n>__<que_hace>.sql`, con el número siguiente y dos guiones bajos. Por ejemplo, `V2__tipo_y_volumen_de_producto.sql`.
+- Un cambio de esquema es un archivo nuevo, `V<n>__<que_hace>.sql`, con el número siguiente y dos guiones bajos. La próxima es `V3__<que_hace>.sql`.
 - Una migración que ya se aplicó no se edita: Flyway guarda su checksum y, si el archivo cambia, la app no arranca. Para corregirla, va otra migración.
 - Hibernate no toca el esquema (`ddl-auto=validate`): al arrancar comprueba que las entidades coincidan con la base y, si falta una tabla o una columna o un tipo no coincide, la app no arranca. Por eso el cambio de una entidad y su migración van juntos.
 
@@ -56,11 +56,12 @@ El esquema lo arma Flyway con las migraciones de `src/main/resources/db/migratio
 Son tests de integración: levantan la aplicación completa en un puerto libre, contra un MySQL 8.4 en un contenedor (Testcontainers), con Usuarios, Inventario y Reseñas simulados con WireMock. No hace falta tener un MySQL propio ni los otros servicios corriendo.
 
 - `CatalogoDeProductosTpiApplicationTests`: la app arranca contra MySQL y `GET /categories` lista lo que hay en la base.
-- `ProductoPorSkuTests`: `/products/{sku}`. Un SKU que no existe, el detalle con Inventario caído o lento, la baja con y sin `X-API-Key`, y que ninguna key pasa sin Usuarios, ni siquiera `TEST-KEY`, la que aceptaba el TPI. También los códigos de la baja según lo que responde Usuarios: 401, 403 y 503 (caído, lento, con un 500 o con un 404). Sirve de molde para los tests nuevos.
+- `ProductoPorSkuTests`: `/products/{sku}`. Un SKU que no existe, el detalle con los campos del contrato (un FISICO con la `cantidad` de Inventario aunque Inventario mande campos de más, y un DIGITAL sin `peso`, `volumen` ni `descripcion`), el detalle con Inventario caído o lento, el `PATCH` (el precio, los campos que no acepta y los decimales de más), la baja con y sin `X-API-Key`, y que ninguna key pasa sin Usuarios, ni siquiera `TEST-KEY`, la que aceptaba el TPI. También los códigos de la baja según lo que responde Usuarios: 401, 403 y 503 (caído, lento, con un 500 o con un 404). Sirve de molde para los tests nuevos.
 - `CategoriasTests`: las categorías con id de texto. El alta con el id que manda el cliente, el 409 por un id o un nombre repetido (sin pisar la categoría que estaba), la validación del id, `GET /categories/{categoryId}` con un id que no existe o mal formado, y `GET /categories` con la lista vacía y ordenada por nombre.
 - `AltaDeProductoTests`: el `categoriaId` de texto en los productos. El alta con una categoría que existe, el 400 con una que no existe o mal formada, el 422 si falta, el 409 del SKU repetido antes que la categoría y el filtro `categoriaId` de `GET /products`.
+- `CamposDelProductoTests`: el alta según el `tipo`. `peso` y `volumen` obligatorios en un FISICO y prohibidos en un DIGITAL, un `tipo` inválido, los decimales de más, el 400 por un campo que el body no acepta (también en el alta de categorías) y la respuesta del alta, con `cantidad` en `null`.
 - `CodigosDeErrorTests`: los códigos de error del contrato que no dependen de Usuarios. JSON roto, parámetro inválido, ruta inexistente, 405, 406, 415, las reglas del 422 y del 400, y un 500 que no muestra detalles internos.
-- `MigracionesTests`: las migraciones de Flyway sobre la base vacía. La base queda en la última versión, sin migraciones pendientes ni fallidas. Cada migración nueva sube la versión que espera.
+- `MigracionesTests`: las migraciones de Flyway sobre la base vacía. La base queda en la última versión, sin migraciones pendientes ni fallidas, y la tabla `productos` queda con las columnas de la `V2`. Cada migración nueva sube la versión que espera.
 - `TestDeIntegracion`: la clase base que arma la app, el MySQL y los WireMock. Los tests nuevos la extienden.
 
 Hace falta:
@@ -89,9 +90,9 @@ Así están hoy. Todavía no coinciden del todo con la consigna (ver más abajo)
 | Método | Ruta | Qué hace | Pide `X-API-Key` |
 |---|---|---|---|
 | `GET` | `/products` | Lista los productos activos. Filtros opcionales: `nombre`, `categoriaId` | No |
-| `GET` | `/products/{sku}` | Detalle de un producto, con stock y rating | No |
-| `POST` | `/products` | Crea un producto | Sí |
-| `PATCH` | `/products/{sku}` | Modifica los campos enviados | Sí |
+| `GET` | `/products/{sku}` | Detalle de un producto, con `cantidad` de Inventario y rating | No |
+| `POST` | `/products` | Crea un producto. El `tipo` es `FISICO`, con `peso` y `volumen`, o `DIGITAL`, sin ellos. No acepta `cantidad`: el stock se carga en Inventario | Sí |
+| `PATCH` | `/products/{sku}` | Modifica `nombre`, `descripcion` o `precio`. Valida `peso` y `volumen`, pero todavía no los guarda. No acepta `stock`, `cantidad`, `tipo` ni `sku` | Sí |
 | `DELETE` | `/products/{sku}` | Baja lógica | Sí |
 | `GET` | `/categories` | Lista las categorías dentro de `items`, ordenadas por nombre | No |
 | `GET` | `/categories/{categoryId}` | Detalle de una categoría | No |
@@ -101,9 +102,13 @@ El id de una categoría lo elige quien la crea: minúsculas, números y guiones 
 
 Los errores salen en JSON con la forma `{ "error": "...", "message": "..." }`. Los códigos y cuándo sale cada uno están en el contrato, [`docs/api/catalog.yaml`](../../docs/api/catalog.yaml).
 
+Los bodies son cerrados, como en el contrato: un campo que la operación no acepta da 400 (por ejemplo, `El campo cantidad no se acepta en esta operación`), también en el alta de categorías.
+
 ## Diferencias conocidas con la consigna
 
 Se revisaron leyendo el código y van a ir como issues. Las principales:
 
 - `GET /products` filtra por `nombre` y devuelve un array; la consigna pide `q`, rango de precio, paginación y la forma `{items, page, pageSize, total}`.
 - El cliente de Inventario espera el campo `disponibilidad`; la consigna devuelve `disponible`.
+- `PATCH /products/{sku}` todavía no guarda `peso` ni `volumen`, rechaza `categoriaId` con un 400 y responde 200 a un body vacío; el contrato los aplica y pide 422 para `{}` ([#19](https://github.com/EzeCasado/marketplace-microservices/issues/19)).
+- El detalle de un producto trae `ratingPromedio` y `cantidadResenas`, que el contrato no tiene ([#29](https://github.com/EzeCasado/marketplace-microservices/issues/29)).

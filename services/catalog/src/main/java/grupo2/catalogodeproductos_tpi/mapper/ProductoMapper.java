@@ -18,8 +18,7 @@ public interface ProductoMapper {
     @Mapping(target = "categoria", ignore = true)
     // IMPORTANTE: Forzamos que el producto nazca como 'activo = true'
     @Mapping(target = "activo", constant = "true") 
-    // 'peso' se mapea automáticamente porque se llama igual en ambos lados
-    @Mapping(target = "dimensiones", ignore = true) // Ignoramos dimensiones si no está en el DTO aún
+    // 'tipo', 'peso' y 'volumen' se mapean solos porque se llaman igual en ambos lados
     Producto toProducto(CreateProductoDTO createDTO);
 
 
@@ -27,14 +26,13 @@ public interface ProductoMapper {
     @Mapping(target = "sku", source = "producto.sku")
     @Mapping(target = "nombre", source = "producto.nombre")
     @Mapping(target = "descripcion", source = "producto.descripcion")
+    @Mapping(target = "tipo", source = "producto.tipo")
     @Mapping(target = "precio", source = "producto.precio")
-    // IMPORTANTE: Mapeamos los nuevos campos
-    @Mapping(target = "peso", source = "producto.peso") 
-    @Mapping(target = "activo", source = "producto.activo")
-    // ---------------------------------------
+    @Mapping(target = "peso", source = "producto.peso")
+    @Mapping(target = "volumen", source = "producto.volumen")
     @Mapping(target = "categoria", source = "producto.categoria")
-    @Mapping(target = "fechaCreacion", source = "producto.fechaCreacion")
-    @Mapping(target = "stock", source = "stockDTO.disponibilidad")
+    // El stock es de Inventario. Hasta el #16, StockDTO lo lee de `disponibilidad`.
+    @Mapping(target = "cantidad", source = "stockDTO.disponibilidad")
     @Mapping(target = "ratingPromedio", source = "ratingDTO.promedio")
     @Mapping(target = "cantidadResenas", source = "ratingDTO.cantidad")
     ProductoResponseDTO toProductoResponseDTO(Producto producto, StockDTO stockDTO, RatingDTO ratingDTO);
