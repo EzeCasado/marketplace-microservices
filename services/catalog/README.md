@@ -6,7 +6,7 @@ Viene del trabajo práctico de POO ([repo original](https://github.com/EzeCasado
 
 ## Tecnología
 
-Java 21, Spring Boot 4.1 (Web MVC, Data JPA, Validation), MySQL, MapStruct y Lombok.
+Java 21, Spring Boot 4.1 (Web MVC, Data JPA, Validation), MySQL, Flyway, MapStruct y Lombok.
 
 ## Cómo correrlo
 
@@ -14,7 +14,7 @@ Java 21, Spring Boot 4.1 (Web MVC, Data JPA, Validation), MySQL, MapStruct y Lom
 
 El catálogo y su MySQL se levantan juntos con el Compose de la raíz. Los pasos están en el [README de la raíz](../../README.md#cómo-levantarlo).
 
-Si la base del Compose se creó antes de que las categorías pasaran a ids de texto, hay que borrarla con `docker compose down -v` antes de levantarlo: el id de las categorías cambió de tipo y la base no se actualiza sola.
+Si la base del Compose se creó antes de Flyway, hay que borrarla una vez con `docker compose down -v` antes de levantarlo: la armó Hibernate, y Flyway no arranca contra una base con tablas y sin su historial. Desde ahí, los cambios de esquema se aplican solos al arrancar (ver [Migraciones de la base](#migraciones-de-la-base)).
 
 En el CI, el job `Catalog (Docker Compose)` levanta lo mismo y le pega a `GET /categories` en cada pull request que toca `services/catalog` o el Compose.
 
@@ -43,6 +43,14 @@ Queda escuchando en el puerto `8082`. Si Usuarios, Inventario o Reseñas no est�
 
 La excepción son las escrituras (`POST`, `PATCH` y `DELETE`): validan la `X-API-Key` contra Usuarios y, sin una respuesta 2xx, la rechazan. Si Usuarios rechaza la key, responden 401; si la key no tiene permiso, 403, y si Usuarios no responde (está caído, tarda más de 3 segundos o contesta otro código), 503. Para escribir en local hace falta Usuarios corriendo o cualquier servicio que responda 200 en `USERS_VALIDATE_URL` (por ejemplo, un WireMock suelto). En Docker, por ahora, sale siempre 503: el Compose no tiene Usuarios.
 
+## Migraciones de la base
+
+El esquema lo arma Flyway con las migraciones de `src/main/resources/db/migration`, que corren solas al arrancar la app, en orden y una sola vez cada una. La `V1` es el esquema que generaba Hibernate antes de Flyway.
+
+- Un cambio de esquema es un archivo nuevo, `V<n>__<que_hace>.sql`, con el número siguiente y dos guiones bajos. Por ejemplo, `V2__tipo_y_volumen_de_producto.sql`.
+- Una migración que ya se aplicó no se edita: Flyway guarda su checksum y, si el archivo cambia, la app no arranca. Para corregirla, va otra migración.
+- Hibernate no toca el esquema (`ddl-auto=validate`): al arrancar comprueba que las entidades coincidan con la base y, si falta una tabla o una columna o un tipo no coincide, la app no arranca. Por eso el cambio de una entidad y su migración van juntos.
+
 ## Tests
 
 Son tests de integración: levantan la aplicación completa en un puerto libre, contra un MySQL 8.4 en un contenedor (Testcontainers), con Usuarios, Inventario y Reseñas simulados con WireMock. No hace falta tener un MySQL propio ni los otros servicios corriendo.
@@ -52,6 +60,7 @@ Son tests de integración: levantan la aplicación completa en un puerto libre, 
 - `CategoriasTests`: las categorías con id de texto. El alta con el id que manda el cliente, el 409 por un id o un nombre repetido (sin pisar la categoría que estaba), la validación del id, `GET /categories/{categoryId}` con un id que no existe o mal formado, y `GET /categories` con la lista vacía y ordenada por nombre.
 - `AltaDeProductoTests`: el `categoriaId` de texto en los productos. El alta con una categoría que existe, el 400 con una que no existe o mal formada, el 422 si falta, el 409 del SKU repetido antes que la categoría y el filtro `categoriaId` de `GET /products`.
 - `CodigosDeErrorTests`: los códigos de error del contrato que no dependen de Usuarios. JSON roto, parámetro inválido, ruta inexistente, 405, 406, 415, las reglas del 422 y del 400, y un 500 que no muestra detalles internos.
+- `MigracionesTests`: las migraciones de Flyway sobre la base vacía. La base queda en la última versión, sin migraciones pendientes ni fallidas. Cada migración nueva sube la versión que espera.
 - `TestDeIntegracion`: la clase base que arma la app, el MySQL y los WireMock. Los tests nuevos la extienden.
 
 Hace falta:

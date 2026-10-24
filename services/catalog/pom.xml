@@ -75,6 +75,18 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Flyway, que arma el esquema de la base con las migraciones de db/migration.
+             flyway-mysql es el soporte de MySQL, que Flyway trae aparte -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
+
         <!-- Lombok (para @Data, @RequiredArgsConstructor, etc.) -->
         <dependency>
             <groupId>org.projectlombok</groupId>
