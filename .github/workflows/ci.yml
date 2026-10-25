@@ -59,8 +59,9 @@ jobs:
       - name: Build and run tests
         run: mvn -B verify
 
-  # Levanta el catálogo y su MySQL con el Compose de la raíz y le pega a GET /categories,
-  # para que el Dockerfile o el Compose no se rompan sin que nadie lo vea.
+  # Levanta el catálogo y su MySQL con el Compose de la raíz y le pega a GET /categories y a dos
+  # productos de los datos de prueba, para que el Dockerfile, el Compose o la seed no se rompan
+  # sin que nadie lo vea.
   # La contraseña de la base se genera acá: no usa secrets del repo.
   catalog-docker:
     name: Catalog (Docker Compose)
@@ -83,6 +84,12 @@ jobs:
       # Reintenta cada 3 s, también con la conexión rechazada o un error HTTP, hasta 90 s.
       - name: Check GET /categories
         run: curl --fail --silent --show-error --retry 30 --retry-delay 3 --retry-max-time 90 --retry-all-errors http://localhost:8082/categories
+      # Sin reintentos: si /categories ya respondió, la app arrancó y Flyway ya cargó la seed.
+      # Un curl por URL: con varias, curl devuelve el código de la última.
+      - name: Check seed products
+        run: |
+          curl --fail --silent --show-error http://localhost:8082/products/BK-001
+          curl --fail --silent --show-error http://localhost:8082/products/EB-001
       - name: Show logs
         if: failure()
         run: docker compose logs
