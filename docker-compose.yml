@@ -10,6 +10,9 @@ services:
       DB_URL: jdbc:mysql://catalog-db:3306/catalog?serverTimezone=UTC
       DB_USER: catalog
       DB_PASSWORD: ${CATALOG_DB_PASSWORD:?Falta CATALOG_DB_PASSWORD. Copiá .env.example como .env y completala}
+      # Suma los datos de prueba (db/seed) solo en el Compose. La variable reemplaza la ubicación
+      # por defecto de Flyway en vez de sumarse, por eso repite db/migration.
+      SPRING_FLYWAY_LOCATIONS: classpath:db/migration,classpath:db/seed
       # Las URLs de Usuarios, Inventario y Reseñas no se pasan hasta que esos servicios
       # estén en el Compose: stock y ratingPromedio vienen en null.
     depends_on:
