@@ -36,6 +36,8 @@ docker compose up --build
 
 El catálogo queda en `http://localhost:8082` y su MySQL en `127.0.0.1:3307`. Si el 3307 ya está tomado, cambialo con `CATALOG_DB_PORT` en el `.env`. La primera vez tarda más: baja las imágenes y compila el catálogo.
 
+El catálogo arranca con datos de prueba (cuatro categorías y diez productos), para poder mirar la API sin Usuarios. Qué trae y cómo se usa está en el [README del catálogo](services/catalog/README.md#datos-de-prueba).
+
 Para bajarlo, `down` guarda los datos de MySQL y `down -v` los borra:
 
 ```bash
